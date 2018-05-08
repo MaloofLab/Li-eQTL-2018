@@ -7,8 +7,8 @@ output: html_document
 
 ### read in data 
 ```{r} 
-setwd("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018")
-parent.read.count <- read.table("input/read.count.tsv", header = T, check.names = F)
+setwd("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/scripts/")
+parent.read.count <- read.table("../input/read.count.tsv", header = T, check.names = F)
 rownames(parent.read.count) <- parent.read.count[,1]
 parent.read.count <- parent.read.count[,-1]  
 
@@ -18,14 +18,14 @@ parent.read.count.one <- parent.read.count[,even_indexes]
 colnames(parent.read.count.one) <- sub("_2.fq","",colnames(parent.read.count.one),fixed = TRUE) 
 
 # sample description  
-sample_des <- read.csv("input/parent_summary.csv")
+sample_des <- read.csv("../input/parent_summary.csv")
 sorted_sample_des <- sample_des[order(sample_des$SampleID),]
 new_sample_ID <- paste(sorted_sample_des$Cultivar, sorted_sample_des$Stage, sorted_sample_des$rep, sep = "_")
-colnames(parent.read.count.one) <- new_sample_ID
+colnames(parent.read.count.one) <- new_sample_ID 
 ``` 
 
 ### sample description & filtering 
-```{r}
+```{r} 
 library(edgeR)
 library(ggplot2)
 
@@ -92,7 +92,7 @@ nrow(DEgene.new.gt)
 
 ### GO enrichment analysis 
 ```{r}
-source("scripts/helper.R") 
+source("helper.R") 
 # gt effect  
 DEgene.GO.ORA.gt <- GOseq.Bn.ORA(rownames(DEgene.new.gt))
 DEgene.GO.ORA.interaction <- GOseq.Bn.ORA(rownames(DEgene.new.interaction))

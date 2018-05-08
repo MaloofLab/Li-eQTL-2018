@@ -4,7 +4,7 @@
 library(ShortRead);library(goseq);library(GO.db);library("annotate")
 library(WGCNA);library(ggplot2);library(reshape2);library(scales); library (plyr)
 
-Bn_cdna<-readDNAStringSet("input/Brassica_napus.annotation_v5.cds_modified.fa")
+Bn_cdna<-readDNAStringSet("../input/Brassica_napus.annotation_v5.cds_modified.fa")
 bias<-nchar(Bn_cdna)
 names(bias)<-names(Bn_cdna)
 
@@ -24,7 +24,7 @@ names(bias)<-names(Bn_cdna)
 # Bngo.DF3 <- ldply (Bngo.list, data.frame)
 # names(Bngo.DF3)<-c("gene","GO") #if Brgo.list does not work in goseq, use DF3.
 
-load("input/Bngo.list.Rdata")
+load("../input/Bngo.list.Rdata")
 
 GOseq.Bn.ORA<-function(genelist,padjust=0.05,ontology="BP") { # return GO enrichment table, padjus, padjust=0.05
   TF<-(names(bias) %in% genelist)*1

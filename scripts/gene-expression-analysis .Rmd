@@ -1,0 +1,117 @@
+---
+title: "Gene-expression-analysis" 
+author: "Ruijuan Li"
+date: "5/7/2018"
+output: html_document
+---
+
+### read in data 
+```{r} 
+setwd("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018")
+parent.read.count <- read.table("input/read.count.tsv", header = T, check.names = F)
+rownames(parent.read.count) <- parent.read.count[,1]
+parent.read.count <- parent.read.count[,-1]  
+
+# format data 
+even_indexes<-seq(2,length(colnames(parent.read.count)),2)
+parent.read.count.one <- parent.read.count[,even_indexes]
+colnames(parent.read.count.one) <- sub("_2.fq","",colnames(parent.read.count.one),fixed = TRUE) 
+
+# sample description  
+sample_des <- read.csv("input/parent_summary.csv")
+sorted_sample_des <- sample_des[order(sample_des$SampleID),]
+new_sample_ID <- paste(sorted_sample_des$Cultivar, sorted_sample_des$Stage, sorted_sample_des$rep, sep = "_")
+colnames(parent.read.count.one) <- new_sample_ID
+``` 
+
+### sample description & filtering 
+```{r}
+library(edgeR)
+library(ggplot2)
+
+parent.read.count.one <- parent.read.count.one[,colSums(parent.read.count.one) > 1000000]  
+parent.read.count.one.sample<-data.frame(file=colnames(parent.read.count.one),
+                             batch=factor(gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\5",colnames(parent.read.count.one))),  
+                             genotype=factor(gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\1",colnames(parent.read.count.one))),	
+                             stage=factor(gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\3",colnames(parent.read.count.one))),	
+                             group=factor(gsub("(Da-Ae|Da-Ol-1)(_)([[:print:]]+)(_)(1|2|3)","\\1\\3",colnames(parent.read.count.one)))
+)
+
+# filter based on read count 
+parent.read.count.one.small <- parent.read.count.one[rowSums(parent.read.count.one > 10) >= 3,]
+```
+
+### normalize & clustering  
+```{r}
+dge.new <- DGEList(counts=parent.read.count.one.small, group=parent.read.count.one.sample$group)
+dge.new <- calcNormFactors(dge.new, method = "TMM") 
+mds <- plotMDS(dge.new, method = "bcv",labels = dge.new$samples$group)
+
+x <- as.data.frame(mds$x)
+y <- as.data.frame(mds$y)
+distance_matrix <- merge(x, y, by="row.names")
+distance_matrix$group <- gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\1\\3",distance_matrix$Row.names)
+distance_matrix$gt <- gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\1",distance_matrix$Row.names)
+distance_matrix$tissue <- gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\3",distance_matrix$Row.names)
+
+colnames(distance_matrix) <- c("lib","x","y","group","gt","tissue")
+
+p.mds <- ggplot(data = distance_matrix) + theme_gray(base_size = 20) + 
+  geom_point(aes(x, y, color=factor(gt), shape=factor(tissue)), size=5) + 
+  labs(y = "BCV distance 2", x="BCV distance 1") + 
+  theme()
+
+p.mds
+```
+
+### design matrix and expression analysis 
+```{r}
+parent.read.count.one.sample$genotype <- as.factor(parent.read.count.one.sample$genotype)
+parent.read.count.one.sample$tissue <- as.factor(parent.read.count.one.sample$stage)
+parent.read.count.one.sample$genotype <- relevel(parent.read.count.one.sample$genotype,ref="Da-Ol-1")
+parent.read.count.one.sample$tissue <- relevel(parent.read.count.one.sample$tissue,ref="Young")
+
+design.new <- model.matrix(~tissue*genotype,data = parent.read.count.one.sample) 
+
+# calculate dispersion
+dge.new <- estimateGLMCommonDisp(dge.new, design.new,verbose = TRUE) 
+dge.new <- estimateGLMTrendedDisp(dge.new,design.new)
+dge.new <- estimateGLMTagwiseDisp(dge.new,design.new)
+
+fit.new <- glmFit(dge.new, design.new)
+lrt.new.interaction <- glmLRT(fit.new,coef = c("tissuebolting:genotypeDa-Ae", "tissueearly-silique:genotypeDa-Ae", "tissueflowering:genotypeDa-Ae", "tissuelate-silique:genotypeDa-Ae"))
+
+DEgene.new.interaction <- topTags(lrt.new.interaction,n = Inf)$table[topTags(lrt.new.interaction,n = Inf)$table$FDR<0.05,]
+nrow(DEgene.new.interaction)  
+
+# genes for gt 
+lrt.new.gt <- glmLRT(fit.new,coef = c("genotypeDa-Ae", "tissuebolting:genotypeDa-Ae", "tissueearly-silique:genotypeDa-Ae", "tissueflowering:genotypeDa-Ae", "tissuelate-silique:genotypeDa-Ae"))
+DEgene.new.gt <- topTags(lrt.new.gt,n = Inf)$table[topTags(lrt.new.gt,n = Inf)$table$FDR<0.05,]
+nrow(DEgene.new.gt)  
+```
+
+### GO enrichment analysis 
+```{r}
+source("scripts/helper.R") 
+# gt effect  
+DEgene.GO.ORA.gt <- GOseq.Bn.ORA(rownames(DEgene.new.gt))
+DEgene.GO.ORA.interaction <- GOseq.Bn.ORA(rownames(DEgene.new.interaction))
+
+# draw heatmap for gt & gt:tissue effect genes 
+gt <- DEgene.GO.ORA.gt[,c("Term", "over_represented_padjust")] 
+gt.tissue <- DEgene.GO.ORA.interaction[,c("Term", "over_represented_padjust")]
+gt_gt.tissue <- merge(gt, gt.tissue, by="Term", all=TRUE)
+names(gt_gt.tissue)[c(2:3)] <- c("genotype_effect", "genotype_by_tissue_effect")
+gt_gt.tissue.melt <- melt(gt_gt.tissue)
+gt_gt.tissue.melt$logPvalue <- -log10(gt_gt.tissue.melt$value)
+
+# plot 
+pl.heatmap1 <- ggplot(data = gt_gt.tissue.melt) + 
+  geom_tile(color = "black", aes(x = factor(variable), y = Term, fill=logPvalue)) + scale_fill_gradient2(low=muted("green"), high=("royalblue")) + 
+  labs(y = "GO term", x="", title=" ") + 
+  theme_classic() + 
+  theme(text = element_text(size=8), axis.text=element_text(size=rel(0.8))) 
+
+pl.heatmap1    
+```
+

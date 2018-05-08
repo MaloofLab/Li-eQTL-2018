@@ -5,5 +5,113 @@ date: "5/7/2018"
 output: html_document
 ---
 
-### SNP calling between Da-Ae and Da-Ol-1 
+### Freebayes SNP calling 
+```{r}
+# 1) extract uniquely mapped reads 
+# samtools view Aligned.sortedByCoord.out.bam | awk '$5 == "255"' > Ae_no_bolting_unique_mapped.sam
+# samtools view Aligned.sortedByCoord.out.bam | awk '$5 == "255"' > Ol_no_bolting_unique_mapped.sam
+
+# 2) from sam to bam
+# samtools view -bT Brassica_napus_v4.1.chromosomes.fa Ae_no_bolting_unique_mapped.sam > Ae_no_bolting_unique_mapped.bam
+# samtools view -bT Brassica_napus_v4.1.chromosomes.fa Ol_no_bolting_unique_mapped.sam > Ol_no_bolting_unique_mapped.bam
+
+# 3) remove PCR duplicate
+# samtools rmdup -s Ae_unique_sorted.bam Ae_no_bolting_unique_mapped_rmdup.bam
+# samtools rmdup -s Ol_unique_sorted.bam Ol_no_bolting_unique_mapped_rmdup.bam
+
+# 4) index bam file 
+# samtools index Ae_no_bolting_unique_mapped_rmdup.bam
+# samtools index Ol_no_bolting_unique_mapped_rmdup.bam
+
+# 5) add read group and SNP calling 
+# freebayes_v0.9.21-7-g7dd41db -f /share/malooflab/John/KIAT/Reference/Brassica_napus_v4.1.chromosomes.fa Ae_no_bolting_unique_mapped_rmdup.bam --genotype-qualities --dont-left-align-indels > Ae.vcf
+# freebayes_v0.9.21-7-g7dd41db -f /share/malooflab/John/KIAT/Reference/Brassica_napus_v4.1.chromosomes.fa Ol_no_bolting_unique_mapped_rmdup.bam --genotype-qualities --dont-left-align-indels > Ol.vcf
+
+# 6) remove sam files 
+# rm Ae_no_bolting_unique_mapped.sam
+# rm Ol_no_bolting_unique_mapped.sam
+```
+
+### GATK SNP calling 
+```{r}
+# 1) sort 
+# samtools sort Ae_no_bolting_unique_mapped.bam -o Ae_unique_sorted.bam
+# samtools sort Ol_no_bolting_unique_mapped.bam -o Ol_unique_sorted.bam
+
+# 2) add readgroup 
+# picard AddOrReplaceReadGroups I=Ae_unique_sorted.bam O=Ae_unique_sorted_addrg.bam RGID=Ae RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=Ae
+# picard AddOrReplaceReadGroups I=Ol_unique_sorted.bam O=Ol_unique_sorted_addrg.bam RGID=Ol RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=Ol
+
+# 3) mark PCR duplicate
+# picard MarkDuplicates I=Ae_unique_sorted_addrg.bam O=Ae_unique_sorted_addrg_marked_duplicates.bam M=marked_dup_metrics_Ae.txt 
+# picard MarkDuplicates I=Ol_unique_sorted_addrg.bam O=Ol_unique_sorted_addrg_marked_duplicates.bam M=marked_dup_metrics_Ol.txt
+
+# 4) index bam file 
+# samtools index Ae_unique_sorted_addrg_marked_duplicates.bam
+# samtools index Ol_unique_sorted_addrg_marked_duplicates.bam
+
+# 5) create fastq sequence dictionary file (only need to do once, under the ref fa file folder) 
+# picard CreateSequenceDictionary R=Brassica_napus_v4.1.chromosomes.fa O=Brassica_napus_v4.1.chromosomes.dict
+
+# 6) split 'N' trim (visualize bam alignment before & after alignment in IGV)
+# GATK -T SplitNCigarReads -R Brassica_napus_v4.1.chromosomes.fa -I Ae_unique_sorted_addrg_marked_duplicates.bam -o Ae_unique_sorted_addrg_marked_duplicates_split.bam -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS
+# GATK -T SplitNCigarReads -R Brassica_napus_v4.1.chromosomes.fa -I Ol_unique_sorted_addrg_marked_duplicates.bam -o Ol_unique_sorted_addrg_marked_duplicates_split.bam -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS 
+
+# 7) determine suspicious intervals which are likely in need of realignment 
+# GATK -T RealignerTargetCreator -R Brassica_napus_v4.1.chromosomes.fa -I Ae_unique_sorted_addrg_marked_duplicates_split.bam -o Ae_forIndelRealigner.intervals
+# GATK -T RealignerTargetCreator -R Brassica_napus_v4.1.chromosomes.fa -I Ol_unique_sorted_addrg_marked_duplicates_split.bam -o Ol_forIndelRealigner.intervals
+
+# 8) running realigner over those intervals 
+# GATK -T IndelRealigner -R Brassica_napus_v4.1.chromosomes.fa -I Ae_unique_sorted_addrg_marked_duplicates_split.bam -targetIntervals Ae_forIndelRealigner.intervals -o Ae_realignedBam.bam 
+# GATK -T IndelRealigner -R Brassica_napus_v4.1.chromosomes.fa -I Ol_unique_sorted_addrg_marked_duplicates_split.bam -targetIntervals Ol_forIndelRealigner.intervals -o Ol_realignedBam.bam
+ 
+# 9) variant calling through slurm schedular 
+# #!/bin/bash
+# #SBATCH --partition=gc # partition to submit to
+# #SBATCH --job-name=“call_SNP” # Job name
+# #SBATCH --array=1-41 # array
+# #SBATCH --nodes=1 # single node, anything more than 1 will not run
+# #SBATCH --ntasks=20 # equivalent to cpus, stick to around 20 max on gc64, or gc128 nodes
+# #SBATCH --mem=120000 # in MB, memory pool all cores, default is 2GB per cpu
+# #SBATCH --time=00-10:00:00  # expected time of completion in hours, minutes, seconds, default 1-day
+# #SBATCH --output=SNP_calling_02_01_2017_%A_%a.out # STDOUT
+# #SBATCH --error=SNP_calling_02_01_2017_%A_%a.err # STDERR
+# #SBATCH --mail-user=you@gmail.com # does not work yet
+# #SBATCH --mail-type=ALL # does not work yet
+# # This will be run once for a single process
+# 
+# /bin/hostname
+# module load gatk/3.6
+# 
+# # GATK doesn't support multithread so I will run chromosome intervals as array
+# echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
+# 
+# THREADS=20
+# 
+# sample=`sed "${SLURM_ARRAY_TASK_ID}q;d" samples.txt`
+# 
+# reference=Brassica_napus_v4.1.chromosomes.fa
+# 
+# sample1=Ae_realignedBam.bam
+# sample2=Ol_realignedBam.bam
+# 
+# echo $reference
+# echo $sample1
+# echo $sample2
+# echo $sample
+# 
+# # SNP calling for Ae and Ol combined by chromosome
+# # task array for differnet intervals
+# gatk    -T HaplotypeCaller\
+#         -R ${reference}\
+#         -I ${sample1}\
+#         -I ${sample2}\
+#         -dontUseSoftClippedBases\
+#         -stand_call_conf 20.0\
+#         -stand_emit_conf 20.0\
+#         -L ${sample}\
+#         -o output/${sample}.vcf
+# 
+# echo "done" 
+```
 

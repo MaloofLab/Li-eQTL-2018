@@ -55,3 +55,63 @@ GOseq.Bn.ORA<-function(genelist,padjust=0.05,ontology="BP") { # return GO enrich
     return(enriched.GO)
   }
 }  
+
+SNP.freebayes.reformat.Ae <- function(vcf, vcf.header){ 
+  colnames(vcf) <- vcf.header
+  head(vcf)
+  
+  vcf$Ae[is.na(vcf$Ae)] <- "NA:NA:NA:NA:NA:NA:NA"
+  
+  Ae.tmp.unique <- matrix(
+    unlist(strsplit(vcf$Ae,split = ":")),
+    nrow=nrow(vcf),  
+    byrow=TRUE
+  ) 
+  
+  colnames(Ae.tmp.unique) <- paste("Ae",c("gt","tot.depth","ref.depth","ref.qual","alt.depth","alt.qual","gen.lik"),sep="_")
+  
+  vcf.reform <- cbind(vcf,Ae.tmp.unique,stringsAsFactors=FALSE)
+  
+  vcf.reform[,c("Ae_tot.depth","Ae_ref.depth","Ae_ref.qual","Ae_alt.depth","Ae_alt.qual")] <- 
+    apply(vcf.reform[,c("Ae_tot.depth","Ae_ref.depth","Ae_ref.qual","Ae_alt.depth","Ae_alt.qual")],
+          2,
+          as.numeric) 
+  
+  return(vcf.reform)  
+} 
+
+# function 
+SNP.GATK.reformat <- function(vcf, vcf.header){ # input are vcf file from GATK after filtering & header of the vcf file 
+  colnames(vcf) <- vcf.header 
+  
+  # correct the file 
+  problem.row <- which(vcf$FORMAT!="GT:AD:DP:GQ:PL")
+  vcf.corrected <- vcf[-c(problem.row),]
+  
+  # Before splitting add NAs to blank cells 
+  vcf.corrected$Ae[vcf.corrected$Ae=="./.:.:.:.:."] <- "NA:NA,NA:NA:NA:NA,NA,NA"
+  Ae.GATK <- matrix(
+    unlist(strsplit(vcf.corrected$Ae,split = ":")), 
+    nrow=nrow(vcf.corrected),  
+    byrow=TRUE
+  ) 
+  colnames(Ae.GATK) <- paste("Ae",c("gt","ref.alt.depth","approx.depth","genotype.qual","Phred.score"),sep="_")
+  
+  vcf.corrected$Ol[vcf.corrected$Ol=="./.:.:.:.:."] <- "NA:NA,NA:NA:NA:NA,NA,NA" 
+  Ol.GATK <- matrix(
+    unlist(strsplit(vcf.corrected$Ol,split = ":")),
+    nrow=nrow(vcf.corrected),  
+    byrow=TRUE
+  ) 
+  colnames(Ol.GATK) <- paste("Ol",c("gt","ref.alt.depth","approx.depth","genotype.qual","Phred.score"),sep="_")
+  vcf.reform <- cbind(vcf.corrected, Ae.GATK, Ol.GATK,stringsAsFactors=FALSE) 
+  
+  vcf.reform[,c("Ae_approx.depth","Ae_genotype.qual",
+                "Ol_approx.depth","Ol_genotype.qual")] <-
+    apply(vcf.reform[,c("Ae_approx.depth","Ae_genotype.qual",
+                        "Ol_approx.depth","Ol_genotype.qual")],
+          2,
+          as.numeric
+    )
+  return(vcf.reform)  
+}   

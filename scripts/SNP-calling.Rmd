@@ -2,7 +2,9 @@
 title: "### SNP-calling"
 author: "Ruijuan Li"
 date: "5/7/2018"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ### Freebayes SNP calling 
@@ -68,42 +70,16 @@ output: html_document
 # 9) variant calling through slurm schedular using script https://github.com/MaloofLab/Li-eQTL-TAG-2018/blob/master/scripts/SNP_calling_GATK.slurm
 ```
 
-### SNP filtering 
+### SNP filtering for Freebayes output 
 ```{r}
-library(boxr)
-
-### function 
-SNP.freebayes.reformat.Ae <- function(vcf, vcf.header){ 
-  colnames(vcf) <- vcf.header
-  head(vcf)
-  
-  vcf$Ae[is.na(vcf$Ae)] <- "NA:NA:NA:NA:NA:NA:NA"
-  
-  Ae.tmp.unique <- matrix(
-    unlist(strsplit(vcf$Ae,split = ":")),
-    nrow=nrow(vcf),  
-    byrow=TRUE
-  ) 
-  
-  colnames(Ae.tmp.unique) <- paste("Ae",c("gt","tot.depth","ref.depth","ref.qual","alt.depth","alt.qual","gen.lik"),sep="_")
-  
-  vcf.reform <- cbind(vcf,Ae.tmp.unique,stringsAsFactors=FALSE)
-  
-  vcf.reform[,c("Ae_tot.depth","Ae_ref.depth","Ae_ref.qual","Ae_alt.depth","Ae_alt.qual")] <- 
-    apply(vcf.reform[,c("Ae_tot.depth","Ae_ref.depth","Ae_ref.qual","Ae_alt.depth","Ae_alt.qual")],
-          2,
-          as.numeric) 
-  
-  return(vcf.reform)  
-} 
-
+library(boxr) # need to put data to box for loading 
+source("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/scripts/helper.R")
 
 # use Da-Ae as an example for SNP filtering from Freebayes  
 vcf.freebayes.Ae <- read.table("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/as_diploid/no_bolting_unique_mapped/Ae_SNP_biallelic.recode.vcf",as.is=T,na.strings = ".:.:.:.:.:.:.") 
-dim(vcf.freebayes.Ae)  
 
 vcf.header.freebayes.Ae <- system("grep '#C' ~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/as_diploid/no_bolting_unique_mapped/Ae_SNP_biallelic.recode.vcf",intern = TRUE) 
-vcf.header.freebayes.Ae <- sub("#","",vcf.header.freebayes.Ae) #get rid of the pound sign
+vcf.header.freebayes.Ae <- sub("#","",vcf.header.freebayes.Ae) 
 vcf.header.freebayes.Ae <- unlist(strsplit(vcf.header.freebayes.Ae,split="\t"))
 
 vcf.freebayes.reform.Ae <- SNP.freebayes.reformat.Ae(vcf.freebayes.Ae, vcf.header.freebayes.Ae)
@@ -147,5 +123,139 @@ vcf.freebayes.HQ.1.reform.Ae$MBR <- round(pmin(vcf.freebayes.HQ.1.reform.Ae$RPR,
 
 vcf.freebayes.HQ.2.test1.Ae <- 
 vcf.freebayes.HQ.2.tmp.Ae[(vcf.freebayes.HQ.2.tmp.Ae$MBR>0.01),] 
+
+# do the same analysis for Da-Ol-1 data, output file is vcf.freebayes.HQ.2.test1.Ol 
+
+# combine Da-Ae and Da-Ol-1 filtered vcf data 
+load("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/vcf.freebayes.HQ.2.test1.Ae")
+load("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/vcf.freebayes.HQ.2.test1.Ol")
+
+Ae <- vcf.freebayes.HQ.2.test1.Ae[,c("CHROM", "POS", "REF", "ALT", "Ae_gt")]
+Ol <- vcf.freebayes.HQ.2.test1.Ol[,c("CHROM", "POS", "REF", "ALT", "Ol_gt")]
+
+Ae$feature <- paste(Ae$CHROM, Ae$POS, Ae$REF, Ae$ALT, sep = "_")
+Ol$feature <- paste(Ol$CHROM, Ol$POS, Ol$REF, Ol$ALT, sep = "_")
+
+freebayes_result <- merge(Ae, Ol, by="feature", all=T)
+
+freebayes_result_reform <- freebayes_result[,c("feature", "Ae_gt", "Ol_gt")]
+freebayes_result_reform$Ae_gt <- gsub("NA", "1/1", freebayes_result_reform$Ae_gt)
+freebayes_result_reform[is.na(freebayes_result_reform$Ae_gt)] <- "0/0"
+
+freebayes_result_reform[which(is.na(freebayes_result_reform$Ae_gt)),]$Ae_gt <- "0/0"
+freebayes_result_reform[which(is.na(freebayes_result_reform$Ol_gt)),]$Ol_gt <- "0/0"
+
+freebayes_result_1 <- freebayes_result_reform[freebayes_result_reform$Ae_gt!=freebayes_result_reform$Ol_gt & freebayes_result_reform$Ae_gt!="0/1" & freebayes_result_reform$Ol_gt!="0/1",]  
+```
+
+### SNP filtering for GATK output 
+```{r}
+SNP.GATK.basic.filter <- function(vcf){
+  # filter based on snpcluster 
+  vcf.pass <- vcf[vcf$FILTER!="SnpCluster",]
+  snpcluster.pass.ratio <- nrow(vcf.pass)/nrow(vcf)
+  
+  # filter based on QUAL score 
+  vcf.HQ <- vcf.pass[vcf.pass$QUAL>40,]
+  QUAL.40.pass.ratio <- nrow(vcf.HQ) / nrow(vcf.pass) 
+  Ae.gt.matrix <- table(vcf.HQ$Ae_gt)
+  Ol.gt.matrix <- table(vcf.HQ$Ol_gt)   
+  
+  cat("the percentage of SNPs that are not in snpcluster:", snpcluster.pass.ratio, "\n")
+  cat("The percentage of SNPs with QUAL > 40:", QUAL.40.pass.ratio, "\n")
+  cat("genotyping call matrix for Ae:", "\n")
+  print(Ae.gt.matrix)
+  cat("genotyping call matrix for Ol:", "\n")
+  print(Ol.gt.matrix)
+  
+  return(vcf.HQ)
+}
+
+vcf.GATK <- read.table("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/GATK/as_diploid/no_bolting/GATK_SNP_biallelic.recode.ann.vcf",as.is=T,na.strings = ".") 
+
+vcf.header.GATK <- system("grep '#C' ~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/GATK/as_diploid/no_bolting/GATK_SNP_biallelic.recode.ann.vcf",intern = TRUE) 
+vcf.header.GATK <- sub("#","",vcf.header.GATK) 
+vcf.header.GATK <- unlist(strsplit(vcf.header.GATK,split="\t"))
+
+vcf.GATK.reform <- SNP.GATK.reformat(vcf.GATK, vcf.header.GATK)
+
+vcf.GATK.HQ <- SNP.GATK.basic.filter(vcf.GATK.reform)
+
+# depth 
+vcf.GATK.HQ.1 <- vcf.GATK.HQ[(!is.na(vcf.GATK.HQ$Ae_approx.depth) & 
+                              !is.na(vcf.GATK.HQ$Ol_approx.depth) & 
+                              vcf.GATK.HQ$Ae_approx.depth > 10 & 
+                              vcf.GATK.HQ$Ol_approx.depth > 10 & 
+                              vcf.GATK.HQ$Ae_approx.depth < 1000 & 
+                              vcf.GATK.HQ$Ol_approx.depth < 1000),]  
+
+# genotype quality 
+vcf.GATK.HQ.2 <- vcf.GATK.HQ.1[(!is.na(vcf.GATK.HQ.1$Ae_genotype.qual) &
+                                !is.na(vcf.GATK.HQ.1$Ae_genotype.qual) & 
+                                vcf.GATK.HQ.1$Ae_genotype.qual > 30 & 
+                                vcf.GATK.HQ.1$Ol_genotype.qual > 30),]
+
+vcf.tmp <- vcf.GATK.HQ.2
+
+# subset SNPs between Ae & Ol 
+vcf.Ae.Ol.GATK <- vcf.tmp[((vcf.tmp$Ae_gt=="1/1" & vcf.tmp$Ol_gt=="0/0") | (vcf.tmp$Ae_gt=="0/0" & vcf.tmp$Ol_gt=="1/1")),]  
+```
+
+### get intersection between freebayes and GATK output  
+```{r}
+load("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/freebayes_result_1.Rdata")
+load("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/output/vcf.Ae.Ol.GATK.Rdata") 
+
+freebayes_result_1$CHROM <- gsub("([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]])", "\\1", freebayes_result_1$feature)
+freebayes_result_1$POS <- gsub("([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]])", "\\3", freebayes_result_1$feature)
+freebayes_result_1$REF <- gsub("([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]])", "\\5", freebayes_result_1$feature)
+freebayes_result_1$ALT <- gsub("([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]]+)(_)([[:print:]])", "\\7", freebayes_result_1$feature)
+
+vcf.Ae.Ol.freebayes.tmp <- freebayes_result_1
+vcf.Ae.Ol.GATK.tmp <- vcf.Ae.Ol.GATK
+
+# goal: get intersections where there SNP calls for both Da-Ae & Da-Ol-1 are the same. 
+vcf.freebayes <- paste(vcf.Ae.Ol.freebayes.tmp$CHROM, vcf.Ae.Ol.freebayes.tmp$POS, 
+                       vcf.Ae.Ol.freebayes.tmp$REF, vcf.Ae.Ol.freebayes.tmp$ALT,
+                       vcf.Ae.Ol.freebayes.tmp$Ae_gt, vcf.Ae.Ol.freebayes.tmp$Ol_gt, 
+                       sep = "_")
+
+vcf.GATK <- paste(vcf.Ae.Ol.GATK.tmp$CHROM, vcf.Ae.Ol.GATK.tmp$POS, 
+                  vcf.Ae.Ol.GATK.tmp$REF, vcf.Ae.Ol.GATK.tmp$ALT,
+                  vcf.Ae.Ol.GATK.tmp$Ae_gt, vcf.Ae.Ol.GATK.tmp$Ol_gt,
+                  sep = "_")  
+
+vcf.Ae.Ol.intersect.2 <- intersect(vcf.freebayes, vcf.GATK)
+length(vcf.Ae.Ol.intersect.2) # 63981 same SNP positions between freebayes & GATK   
+```
+
+### SNP annotation using snpEff
+```{r}
+# 1) build database for B.napus
+# download snpEff databse, unzip 
+# mkdir data 
+# cd data 
+# mkdir napus 
+# cd napus  
+# use the gff3 file in 
+# /Network/Servers/avalanche.plb.ucdavis.edu/Volumes/Mammoth/Users/ruijuanli/Reference/B.napus/Brassica_napus.annotation_v5_modified_modified.gff3 (modified gff3 file)
+# mv Brassica_napus.annotation_v5_modified_modified.gff3 genes.gff 
+# wget ftp://bradata:zhl410ivf@brassicadb.org/Brassica_napus/Brassica_napus_v4.1.chromosomes.fa.gz
+# mv Brassica_napus_v4.1.chromosomes.fa.gz sequences.fa.gz 
+# gunzip *.gz
+# cd ..
+# mkdir genomes  
+# cd genomes/ 
+# wget ftp://bradata:zhl410ivf@brassicadb.org/Brassica_napus/Brassica_napus_v4.1.chromosomes.fa.gz
+# mv Brassica_napus_v4.1.chromosomes.fa.gz sequences.fa.gz 
+# gunzip sequences.fa.gz
+# cd ..  (to snpEff home directory)
+# vim snpEff.config #### 
+# add "# Brassica napus genome  napus.genome: Brassica_napus" 
+# java -jar snpEff.jar build -gff3 -v napus 
+
+# 2) SNP annotation  
+# cd cd ~/bin/snpEff/
+# java -jar snpEff.jar napus SNP_biallelic.recode.vcf > SNP_biallelic.recode.ann.vcf 
 ```
 

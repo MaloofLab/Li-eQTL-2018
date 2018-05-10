@@ -70,6 +70,82 @@ output: html_document
 
 ### SNP filtering 
 ```{r}
+library(boxr)
 
+### function 
+SNP.freebayes.reformat.Ae <- function(vcf, vcf.header){ 
+  colnames(vcf) <- vcf.header
+  head(vcf)
+  
+  vcf$Ae[is.na(vcf$Ae)] <- "NA:NA:NA:NA:NA:NA:NA"
+  
+  Ae.tmp.unique <- matrix(
+    unlist(strsplit(vcf$Ae,split = ":")),
+    nrow=nrow(vcf),  
+    byrow=TRUE
+  ) 
+  
+  colnames(Ae.tmp.unique) <- paste("Ae",c("gt","tot.depth","ref.depth","ref.qual","alt.depth","alt.qual","gen.lik"),sep="_")
+  
+  vcf.reform <- cbind(vcf,Ae.tmp.unique,stringsAsFactors=FALSE)
+  
+  vcf.reform[,c("Ae_tot.depth","Ae_ref.depth","Ae_ref.qual","Ae_alt.depth","Ae_alt.qual")] <- 
+    apply(vcf.reform[,c("Ae_tot.depth","Ae_ref.depth","Ae_ref.qual","Ae_alt.depth","Ae_alt.qual")],
+          2,
+          as.numeric) 
+  
+  return(vcf.reform)  
+} 
+
+
+# use Da-Ae as an example for SNP filtering from Freebayes  
+vcf.freebayes.Ae <- read.table("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/as_diploid/no_bolting_unique_mapped/Ae_SNP_biallelic.recode.vcf",as.is=T,na.strings = ".:.:.:.:.:.:.") 
+dim(vcf.freebayes.Ae)  
+
+vcf.header.freebayes.Ae <- system("grep '#C' ~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/as_diploid/no_bolting_unique_mapped/Ae_SNP_biallelic.recode.vcf",intern = TRUE) 
+vcf.header.freebayes.Ae <- sub("#","",vcf.header.freebayes.Ae) #get rid of the pound sign
+vcf.header.freebayes.Ae <- unlist(strsplit(vcf.header.freebayes.Ae,split="\t"))
+
+vcf.freebayes.reform.Ae <- SNP.freebayes.reformat.Ae(vcf.freebayes.Ae, vcf.header.freebayes.Ae)
+
+# QUAL > 40 
+vcf.freebayes.HQ.Ae <- vcf.freebayes.reform.Ae[vcf.freebayes.reform.Ae$QUAL>40,] 
+
+# 10 < depth < 1000
+vcf.freebayes.HQ.1.Ae <- vcf.freebayes.HQ.Ae[(!is.na(vcf.freebayes.HQ.Ae$Ae_tot.depth) & 
+                              vcf.freebayes.HQ.Ae$Ae_tot.depth > 10 & 
+                              vcf.freebayes.HQ.Ae$Ae_tot.depth < 1000),]
+
+tmp.list <- strsplit(vcf.freebayes.HQ.1.Ae$INFO,split = ";")
+
+for (i in 1:length(tmp.list)){
+    tmp.list[[i]] <- tmp.list[[i]][c(1:41)] 
+}
+
+info <- matrix(
+  unlist(tmp.list),
+  nrow=nrow(vcf.freebayes.HQ.1.Ae),  
+  byrow=TRUE
+  )
+
+colnames(info) <- c("AB","ABP","AC","AF","AN","AO","CIGAR","DP","DPB","DPRA","EPP","EPPR","GTI","LEN","MEANALT",
+                    "MQM","MQMR","NS","NUMALT","ODDS","PAIRED","PAIREDR","PAO","PQA","PQR","PRO","QA","QR","RO",
+                    "RPL","RPP","RPPR","RPR","RUN","SAF","SAP","SAR","SRF","SRP","SRR","TYPE")
+
+for (i in 1:ncol(info)){
+  info[,i] <- gsub("([[:print:]]+)(=)([[:print:]])","\\3",info[,i])
+}
+
+vcf.freebayes.HQ.1.Ae <- cbind(vcf.freebayes.HQ.1.Ae,info,stringsAsFactors=FALSE)
+
+# tail bias 
+vcf.freebayes.HQ.1.reform.Ae <- vcf.freebayes.HQ.1.Ae
+vcf.freebayes.HQ.1.reform.Ae$RPR <- as.numeric(vcf.freebayes.HQ.1.reform.Ae$RPR)
+vcf.freebayes.HQ.1.reform.Ae$RPL <- as.numeric(vcf.freebayes.HQ.1.reform.Ae$RPL)
+
+vcf.freebayes.HQ.1.reform.Ae$MBR <- round(pmin(vcf.freebayes.HQ.1.reform.Ae$RPR, vcf.freebayes.HQ.1.reform.Ae$RPL)/(vcf.freebayes.HQ.1.reform.Ae$RPR + vcf.freebayes.HQ.1.reform.Ae$RPL), digits = 2) vcf.freebayes.HQ.2.tmp.Ae <- vcf.freebayes.HQ.1.reform.Ae
+
+vcf.freebayes.HQ.2.test1.Ae <- 
+vcf.freebayes.HQ.2.tmp.Ae[(vcf.freebayes.HQ.2.tmp.Ae$MBR>0.01),] 
 ```
 

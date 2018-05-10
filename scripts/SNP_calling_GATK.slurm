@@ -8,8 +8,8 @@
 #SBATCH --time=00-10:00:00  # expected time of completion in hours, minutes, seconds, default 1-day
 #SBATCH --output=SNP_calling_01_24_2017_%A_%a.out # STDOUT
 #SBATCH --error=SNP_calling_01_24_2017_%A_%a.err # STDERR
-#SBATCH --mail-user=you@gmail.co # does not work yet
-#SBATCH --mail-type=ALL # does not work yet
+#SBATCH --mail-user=you@gmail.com # 
+#SBATCH --mail-type=ALL # 
 # This will be run once for a single process
 
 /bin/hostname

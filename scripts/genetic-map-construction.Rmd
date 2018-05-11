@@ -134,8 +134,26 @@ write.table(rownames(F2_geno_data_2_Ae_Ol_new), file = "~/Desktop/Brassica_proje
 ```
 
 ### calculate two point rf 
-F2_map_construction_LOD3_rf0.5_missing_0.10.R  
+https://github.com/MaloofLab/Li-eQTL-TAG-2018/blob/master/scripts/F2_map_construction_LOD3_rf0.5_missing_0.10.R   
 
 ### use madmapper to assign markers to clusters/LGs 
 [http://cgpdb.ucdavis.edu/XLinkage/MadMapper/Genetic_Map_MadMapper_Arabidopsis.html]
+
+### running madmapper 
+### 1) format marker data to madmapper accepted format (on MAC)
+```{r}
+# cat F2_geno_data_2_Ae_Ol_new.txt | sed 's/"//g' | tr " " "\t" > F2_geno_data_m.txt 
+# vim edit add ";" to the 1st line
+# mv F2_geno_data_m.txt F2_geno_data_m.loc 
+# wc -l F2_geno_data_m.loc 3444 
+# cat F2_geno_data_m.loc | awk '{print NF}' | sort | uniq 
+```
+
+### 2) madmapper 
+http://cgpdb.ucdavis.edu/XLinkage/MadMapper/#Part_2
+```{r} 
+# https://github.com/leejimmy93/KIAT/blob/master/madmapper.sh
+# the output file we should check is tree.clust file 
+```
+
 

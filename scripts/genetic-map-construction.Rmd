@@ -5,3 +5,137 @@ date: "5/7/2018"
 output: html_document
 ---
 
+### install & load package 
+```{r}
+library(tcltk)
+library(tkrplot)
+library(onemap)  
+library(ggplot2)
+library(reshape) 
+library(tidyverse) 
+library("qtl") 
+library(snowfall) 
+```
+
+### import & format data
+```{r} 
+F2_geno_data <- read.table("~/Desktop/Brassica_project/KIAT_RNA_seq/F2/data/F2_Final_SNP_Calls", header = T)
+rownames(F2_geno_data) <- paste(F2_geno_data$CHROM, F2_geno_data$POS, sep = "_")
+F2_geno_data <- F2_geno_data[, -c(1:6)] 
+colnames(F2_geno_data) <- gsub("([[:print:]]+)(\\.)([[:digit:]])", "\\3", colnames(F2_geno_data)) 
+
+F2_geno_data_with_missing_rate <- mutate(F2_geno_data, 
+       missing_rate = round(apply(F2_geno_data, 1, function(x) sum(is.na(x)))/166, 2)) 
+
+rownames(F2_geno_data_with_missing_rate) <- rownames(F2_geno_data) 
+```
+
+### remove markers with missing rate greater than 0.90
+```{r}
+F2_geno_data_with_missing_rate_filtered <-  F2_geno_data_with_missing_rate[F2_geno_data_with_missing_rate$missing_rate < 0.10,]
+
+F2_geno_data_with_missing_rate_filtered.final <- subset(F2_geno_data_with_missing_rate_filtered, select=-missing_rate)
+```
+
+### calculate pairwise corrlelation and remove SNPs with corrlelation greater or equal to 0.9
+some SNPs should have exactly the same genotype across all individuals, they are redundant in terms of genetic map construction, so they should be removed. find those SNPs by doing correlation test.
+```{r}
+F2_geno_data_t <- as.data.frame(t(F2_geno_data_with_missing_rate_filtered.final))
+F2_geno_data_t.numeric <- data.matrix(F2_geno_data_t)
+
+# delete markers with all same genotypes across individuals 
+test <- apply(F2_geno_data_t.numeric, 2, function(x) length(unique(x[!is.na(x)])))
+filter.polymorphsm <- test != 1 
+
+F2_geno_data_t.numeric.2 <- F2_geno_data_t.numeric[,filter.polymorphsm]
+dim(F2_geno_data_t.numeric.2) # 166 3606
+
+# also output save markers with same genotype across individuals
+polymorphism <- test == 1
+SNP.not.poly <- colnames(F2_geno_data_t.numeric)[polymorphism]
+length(SNP.not.poly) # two markers are not polymorphism across individuals 
+
+# correlation test
+options(warn=-1) # suppress warning message
+F2_SNP_correlation <- cor(F2_geno_data_t.numeric.2, use = "pairwise.complete.obs")
+options(warn=0) # unsuppress warning message
+dim(F2_SNP_correlation) # 3606 3606 
+
+# calcualte number of SNPs with correlation of 1
+nrow(which(F2_SNP_correlation == 1 & lower.tri(F2_SNP_correlation), arr.ind = T, useNames = T)) # 172 
+# find SNPs with correlation of 1 and remove them 
+dup.cordinate <- which(F2_SNP_correlation == 1 & lower.tri(F2_SNP_correlation), arr.ind = T, useNames = F)
+dup.cordinate.df <- as.data.frame(dup.cordinate)
+sample.ID <- colnames(F2_SNP_correlation)
+
+# extract duplicate pair information based on their coordicate
+dup.pair <- data.frame(matrix(nrow = nrow(dup.cordinate), ncol = 2))
+for (i in 1:nrow(dup.cordinate)){
+ dup.pair[i,1] <- sample.ID[dup.cordinate[i,1]]
+ dup.pair[i,2] <- sample.ID[dup.cordinate[i,2]]
+}
+
+rem <- unique(dup.pair[,2])
+length(rem) # 163 markers are removed due to pairwise correlation of 1 
+
+F2_geno_data_1 <- F2_geno_data_with_missing_rate_filtered.final[!(rownames(F2_geno_data_with_missing_rate_filtered.final) %in% rem),]  
+
+# remove non polymorphism SNPs 
+F2_geno_data_2 <- F2_geno_data_1[!(rownames(F2_geno_data_1) %in% SNP.not.poly),]
+
+dim(F2_geno_data_2) # 3443  166, end up with 2932 SNPs for map construction 
+```
+
+### format data for onemap, polarize using parental genotype data 
+```{r}
+# read parent data 
+Ae_Ol <- read.csv("~/Desktop/Brassica_project/KIAT_RNA_seq/F2/data/vcf.Ae.Ol.intersect.final.csv", stringsAsFactors = F)
+
+# left join to filter Ae_Ol SNP based on F2 genotypes
+Ae_Ol$index <- paste(Ae_Ol$CHROM, Ae_Ol$POS, sep = "_")
+F2_geno_data_2$index <- rownames(F2_geno_data_2)
+F2_geno_data_2_Ae_Ol <- 
+left_join(F2_geno_data_2, Ae_Ol, by="index") %>% 
+  dplyr::select(-(X:ALT)) 
+
+F2_geno_data_2_Ae_Ol <- as.matrix(F2_geno_data_2_Ae_Ol) 
+
+# reassign genotype according to parents genotypes
+F2_geno_data_2_Ae_Ol_new <- data.frame()
+
+for (i in colnames(F2_geno_data_2_Ae_Ol)[1:166]) {
+  print(i)
+  for (j in 1:nrow(F2_geno_data_2_Ae_Ol)){
+    if (is.na(F2_geno_data_2_Ae_Ol[j,i])){
+    F2_geno_data_2_Ae_Ol_new[j,i] = "-"
+    } else if (F2_geno_data_2_Ae_Ol[j,i] == "0/1"){
+      F2_geno_data_2_Ae_Ol_new[j,i] = "H"
+    } else if (F2_geno_data_2_Ae_Ol[j,i] == F2_geno_data_2_Ae_Ol[j,"Ae.gt"]){
+      F2_geno_data_2_Ae_Ol_new[j,i] = "A"
+    } else {
+      F2_geno_data_2_Ae_Ol_new[j,i] = "B"
+    }
+  }
+}
+
+rownames(F2_geno_data_2_Ae_Ol_new) <- F2_geno_data_2_Ae_Ol[,"index"]
+dim(F2_geno_data_2_Ae_Ol_new) # 3443 166  
+
+write.table(F2_geno_data_2_Ae_Ol_new, file = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/F2_geno_data_2_Ae_Ol_new.txt")
+# change file format in linux 
+# cat F2_geno_data_2_Ae_Ol_new.txt | sed 's/"//g' | awk '{first = $1; $1 = ""; print $0}' | sed 's/ //g' > tmp
+# tail -3443 tmp > tmp.1  
+
+write.table(rownames(F2_geno_data_2_Ae_Ol_new), file = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/marker_info.txt" )
+# cat marker_info.txt | awk '{print "*"$2}' | tail -3334 | sed 's/"//g' > marker_info_reform.txt
+# paste marker_info_reform.txt tmp.1 | awk '{print $1 " " $2}' > F2_geno_for_one_map.txt 
+# cat header_one_map_input F2_geno_for_one_map.txt > F2_geno_for_one_map_final.txt 
+# change header info: maker number to the right marker number 
+```
+
+### calculate two point rf 
+F2_map_construction_LOD3_rf0.5_missing_0.10.R  
+
+### use madmapper to assign markers to clusters/LGs 
+[http://cgpdb.ucdavis.edu/XLinkage/MadMapper/Genetic_Map_MadMapper_Arabidopsis.html]
+

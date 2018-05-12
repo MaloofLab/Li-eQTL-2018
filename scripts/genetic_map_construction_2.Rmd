@@ -1,0 +1,146 @@
+---
+title: "genetic_map_construction_2"
+author: "Ruijuan Li"
+date: "5/11/2018"
+output: html_document
+---
+
+load libraries
+```{r}
+library(tidyverse)
+library(qtl)
+```
+
+replace markers with double crossover (indication of mis-genotyping) with missing data, and remove markers with too many missgenotyping 
+```{r}
+## all markers on A & C 
+LG.f2.madmapper <- read.cross("mm", file = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/F2_geno_for_one_map_final.txt", mapfile = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/LG.f2.madmapper.C05C08.map") 
+
+summary(LG.f2.madmapper) # 2029  
+
+# iterate over all LGs 
+# rename to the right name 
+names(LG.f2.madmapper$geno)[1:10] <- paste("A", c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10"), sep = "")
+names(LG.f2.madmapper$geno)[11:19] <- paste("C", c("01", "02", "03", "04", "05", "06", "07", "08", "09"), sep = "") 
+
+# remove double crossover 
+summaryMap(LG.f2.madmapper) # 6835
+LG.f2.madmapper.before.crossover <- LG.f2.madmapper 
+
+for (chr in names(LG.f2.madmapper$geno)) { # for each chromosome in cross genotype data
+  my.chr <- get(chr,LG.f2.madmapper$geno) # return the genotype data, including data & map
+  print(paste(chr,"NA before",sum(is.na(my.chr$data)))) 
+  if(ncol(my.chr$data) > 3) { 
+    my.chr$data[,2:(ncol(my.chr$data)-1)] <- sapply(2:(ncol(my.chr$data)-1),function(i) {
+      apply(my.chr$data[,(i-1):(i+1)],1,function(gt) {
+        if (any(is.na(gt))) return(gt[2]) #technically should be looking at the next genotyped marker.
+        if ( (length(unique(gt)) == 2) & (gt[1] == gt[3])) return(NA)
+        if ( length(unique(gt))  == 3) return(NA)
+        return(gt[2])
+      })
+    })
+  }
+  LG.f2.madmapper$geno <- within(LG.f2.madmapper$geno,assign(chr,my.chr))
+  print(paste(chr,"NA after",sum(is.na(get(chr,LG.f2.madmapper$geno)$data))))
+}  
+
+# restimate map with double crossover removed 
+f2.map.new <- est.map(LG.f2.madmapper,verbose=T,error.prob=.01)  
+LG.f2.madmapper <- replace.map(LG.f2.madmapper, f2.map.new)
+LG.f2.madmapper.after.crossover <- LG.f2.madmapper
+
+summaryMap(LG.f2.madmapper.after.crossover) 
+
+# plot.rf(LG.f2.madmapper.after.crossover, col.scheme = "redblue", alternate.chrid = T) 
+
+### deal with A10 
+plot.rf(LG.f2.madmapper.after.crossover, chr = "A10")  
+plotMap(LG.f2.madmapper.after.crossover, chr = 'A10') 
+
+set.seed(16)
+LG.f2.madmapper.after.crossover <- orderMarkers(LG.f2.madmapper.after.crossover, chr = "A10", 
+	                        window = 5, use.ripple = TRUE, maxit = 4000, 
+	                        error.prob = 0.0001, verbose = T)
+
+plotMap(LG.f2.madmapper.after.crossover, chr = 'A10') 
+plot.rf(LG.f2.madmapper.after.crossover, chr = 'A10') 
+summaryMap(LG.f2.madmapper.after.crossover) 
+```
+
+check segregation distortion and genetic VS physical colinearity, remove markers at the end of LG with big gaps, and showing segregation distortion, also seem to be misplaced based on genetic VS physical map colinearity  
+
+```{r}
+gt <- geno.table(LG.f2.madmapper.after.crossover)
+
+# remove markers with a lot of missing data, these missing data are from double crossover, means mis-genotyping   
+mar2drop <- rownames(gt[ gt$missing > 27,]) 
+length(mar2drop)
+LG.f2.madmapper.after.crossover.2 <- drop.markers(LG.f2.madmapper.after.crossover, mar2drop)
+summaryMap(LG.f2.madmapper.after.crossover.2) # 2009 
+markers_large_gap_end <- c("chrA04_6268533", "chrA05_21794646", "chrA09_30078310", "chrC05_40797215", "chrC06_35741582", "chrC08_34141406") 
+plotMap(LG.f2.madmapper.after.crossover.2)
+
+# segregation distortion 
+mar_seg_dis <- rownames(gt[ gt$P.value < 1e-2,]) # there are quite several markers showing segregation distortion
+mar2drop <- markers_large_gap_end[markers_large_gap_end %in% mar_seg_dis]
+mar2drop
+
+LG.f2.madmapper.after.crossover.2 <- drop.markers(LG.f2.madmapper.after.crossover, mar2drop)
+summaryMap(LG.f2.madmapper.after.crossover.2) # 2929.9 
+
+# check total rf graph 
+# plot.rf(LG.f2.madmapper.after.crossover.2, col.scheme = "redblue", alternate.chrid = T) 
+``` 
+
+### flip order for several LGs
+```{r}
+LG.f2.madmapper.after.crossover <- LG.f2.madmapper.after.crossover.2
+summaryMap(LG.f2.madmapper.after.crossover) # 2929 cM, 2024 markers 
+
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "A02")
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "A03")
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "A04")
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "A06")
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "A08")
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "A09")
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "C01")
+LG.f2.madmapper.after.crossover <- flip.order(LG.f2.madmapper.after.crossover, chr = "C03")
+
+# three markers are not on their physical chromosome, take them out from the genetic map, this might be caused by mis-mapping
+markers_miss_mapping <- c("chrA05_20283387", "chrA04_10350184", "chrA09_9478710") 
+LG.f2.madmapper.after.crossover <- drop.markers(LG.f2.madmapper.after.crossover, markers_miss_mapping)
+summaryMap(LG.f2.madmapper.after.crossover) # 2021 2929.9 
+
+### write out gen file 
+write.cross(LG.f2.madmapper.after.crossover, format = "csvsr", filestem = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv")
+```  
+
+### make plot 
+```{r}
+map_geno <- read.csv("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv_gen.csv") 
+
+map_geno <-
+map_geno %>% 
+  dplyr::select(id, X, X.1)  
+
+map_geno$genetic_chr <- map_geno$X
+map_geno$genetic_pos <- map_geno$X.1
+map_geno$physical_chr <- gsub("(chr)([[:print:]]+)(_)([[:print:]]+)", "\\2", map_geno$id)
+map_geno$genetic_chr <- factor(map_geno$X, levels = c("C09", "C08", "C07", "C06", "C05", "C04", "C03", "C02", "C01", "A10", "A09", "A08", "A07", "A06", "A05", "A04", "A03", "A02", "A01"))
+map_geno$physical_pos <- gsub("(chr)([[:print:]]+)(_)([[:print:]]+)", "\\4", map_geno$id)
+ 
+par(mfrow=c(5,4), mai = c(0.4, 0.4, 0.4, 0.4), ps = 8, cex = 1, cex.main = 1, cex.axis = 0.8, tcl = -0.3)  
+
+for (i in unique(map_geno$genetic_chr)){
+  plot(map_geno[map_geno$genetic_chr == i,]$genetic_pos, map_geno[map_geno$genetic_chr == i,]$physical_pos, 
+       xlab = "genetic pos", ylab = "physical pos", main = i, type = "p", mgp=c(.1,.5,.0)) 
+}
+
+# genetic map plot 
+par(mfrow=c(1,1))
+plot.map(LG.f2.madmapper.after.crossover, alternate.chrid = T, main = "") # genetic map comparison
+
+# summary map 
+map_summary <- summaryMap(LG.f2.madmapper.after.crossover) 
+write.csv(map_summary, file = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/map_summary.csv")  
+``` 

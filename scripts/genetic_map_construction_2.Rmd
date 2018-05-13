@@ -114,7 +114,7 @@ LG.f2.madmapper.after.crossover <- drop.markers(LG.f2.madmapper.after.crossover,
 summaryMap(LG.f2.madmapper.after.crossover) # 2021 2929.9 
 
 ### write out gen file 
-write.cross(LG.f2.madmapper.after.crossover, format = "csvsr", filestem = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv")
+write.cross(LG.f2.madmapper.after.crossover, format = "csvsr", filestem = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv") # check the format to make sure it is the right format for R/qtl package 
 ```  
 
 ### make plot 

@@ -5,3 +5,140 @@ date: "5/7/2018"
 output: html_document
 ---
 
+### load libs 
+```{r}
+library(tidyverse)
+library(qtl) 
+library(snowfall) 
+library(ggrepel) 
+library(Biostrings)   
+```
+
+### QTL mapping 
+```{r}
+LG.f2.after.crossover <- read.cross("csvsr", 
+                     genfile = "LG.f2.madmapper.final.flipped_gen_C05C08.csv_gen.csv",
+                     phefile = "F2.pheno.csv", 
+                     genotypes = c("AA", "AB", "BB")) 
+
+LG.f2.after.crossover <- sim.geno(LG.f2.after.crossover,step=1,n.draws=32) 
+LG.f2.after.crossover <- calc.genoprob(LG.f2.after.crossover,step=1) 
+
+sfInit(parallel = TRUE, cpus = 4)
+sfExport("LG.f2.after.crossover") 
+sfLibrary(qtl)
+
+system.time(
+scanone.perm.imp <-
+  sfLapply(seq_along(LG.f2.after.crossover$pheno), function(trait){
+    print(trait)
+    tmp <-scanone(LG.f2.after.crossover,pheno.col = trait, method="imp",n.perm=1000, n.cluster = 16)
+    summary(tmp)[1] # #keep the 95th percentile for future use.This corresponds to p <0.05
+  }) 
+)
+sfStop()
+
+names(scanone.perm.imp) <- colnames(LG.f2.after.crossover$pheno)
+
+system.time(
+scanone.imp <-
+lapply(seq_along(LG.f2.after.crossover$pheno[1:53]), function(trait) {
+  scanone(LG.f2.after.crossover,pheno.col=trait,method="imp")
+})
+)
+names(scanone.imp) <- colnames(LG.f2.after.crossover$pheno)[1:53]
+
+cim.qtl <-
+lapply(seq_along(LG.f2.after.crossover$pheno)[1:53], function(trait) {
+  print(trait)
+  cim(LG.f2.after.crossover, n.marcovar=5, pheno.col=trait,method="em")
+})
+
+names(cim.qtl) <- colnames(LG.f2.after.crossover$pheno)[1:53]
+
+sfInit(parallel = TRUE, cpus = 4)
+sfExport("LG.f2.after.crossover")
+sfLibrary(qtl)
+
+cim.perm <-
+  sfLapply(seq_along(LG.f2.after.crossover$pheno)[1:53], function(trait){
+    tmp <- cim(LG.f2.after.crossover,
+               pheno.col = trait,
+               n.marcovar=5,
+               method="em",
+               n.perm=1000)
+    summary(tmp)[1] # #keep the 95th percentile for future use.This corresponds to p <0.05
+  }) 
+
+sfStop() 
+
+names(cim.perm) <- colnames(LG.f2.after.crossover$pheno)[1:53]
+
+save(scanone.perm.imp, scanone.imp, cim.qtl, cim.perm, file = QTL_result_all.C05C08.Rdata)
+```
+
+### eQTL mapping 
+```{r}
+# load and transform gene expression data 
+read_count_F2 <- read.table("est.counts.F2.tsv.gz", header = T, row.names = 1)
+dim(read_count_F2) # 101040    166
+read.count.small <- read_count_F2[rowSums(read_count_F2 > 10) >= 166*0.25,]
+
+library("DESeq2")
+
+read.count.sample <- data.frame(group=factor(colnames(read_count_F2)))
+dds.f2 <- DESeqDataSetFromMatrix(countData = round(read.count.small), colData = read.count.sample, design = ~ group)
+vsd.f2 <- varianceStabilizingTransformation(dds.f2)
+vstMat.f2 <- assay(vsd.f2)
+colnames(vstMat.f2) <- colnames(read.count.small)
+vstMat.f2 %>% dim() # 56180 
+
+# load batch information 
+load("batch_info.Rdata")
+test1 <- as.matrix(dist(t(vstMat.f2)))  
+
+# make MDS plot to check data seperation based on batch information 
+test2 <- as.data.frame(cmdscale(test1))
+plot(test2)
+test2$sample_ID <- rownames(test2)
+test2 %>% 
+  left_join(batch_info, by = "sample_ID") %>% 
+  ggplot() + 
+  geom_point(aes(x = V1, y= V2, color = as.factor(batch))) # bad, clear batch effect   
+
+# correct batch effect and check data seperation based on batch information 
+vstMat.f2.batch.corrected <- removeBatchEffect(vstMat.f2, batch = batch_info$batch) 
+test1 <- as.matrix(dist(t(vstMat.f2.batch.corrected)))  
+test2 <- as.data.frame(cmdscale(test1))
+test2$sample_ID <- rownames(test2)
+test2 %>% 
+  left_join(batch_info, by = "sample_ID") %>% 
+  ggplot() + 
+  geom_point(aes(x = V1, y= V2, color = as.factor(batch))) # great, batch effect removed 
+
+write.csv(vstMat.f2.batch.corrected, file = "vstMat.f2.batch.corrected.csv") # check the file format to make sure it is the right format for R/qtl package 
+
+# eQTL mapping 
+cross.F2 <- read.cross("csvsr", genfile ="LG.f2.madmapper.final_gen_revised_flipped_C05C08.csv", 
+                         phefile = "vstMat.f2.batch.corrected.csv", 
+                         genotypes = c("AA", "AB", "BB"))   
+
+cross.F2 <- sim.geno(cross.F2,step=1,n.draws=32)   
+cross.F2 <- calc.genoprob(cross.F2,step=1) 
+
+scanone_eQTL.F2 <- scanone(cross.F2, pheno.col = 2:ncol(cross.F2$pheno), 
+	         method = "imp", use = "all.obs")  
+
+# permutation  
+set.seed(12345)   
+permtest.F2 <- scanone(cross.F2, pheno.col = 2, method = "imp", n.perm = 10000)  
+
+alphas <- seq(0.01, 0.10, by = 0.01) 
+lod.thrs <- summary(permtest.F2, alphas) 
+lod.thrs   
+
+save(cross.F2, scanone_eQTL.F2, permtest.F2, lod.thrs, file = "scanone-eqtl_F2_flipped_C05C08.RData")  
+```
+
+
+

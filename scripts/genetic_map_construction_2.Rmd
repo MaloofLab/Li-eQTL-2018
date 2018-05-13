@@ -2,7 +2,9 @@
 title: "genetic_map_construction_2"
 author: "Ruijuan Li"
 date: "5/11/2018"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 load libraries

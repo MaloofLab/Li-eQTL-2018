@@ -18,6 +18,8 @@ library(snowfall)
 ```
 
 ### import & format data
+
+* input data are deposited in box folder https://ucdavis.app.box.com/folder/49886630432 input folder; output data are in  https://ucdavis.app.box.com/folder/49886630432 input folder 
 ```{r} 
 F2_geno_data <- read.table("F2_Final_SNP_Calls", header = T)
 rownames(F2_geno_data) <- paste(F2_geno_data$CHROM, F2_geno_data$POS, sep = "_")
@@ -134,7 +136,7 @@ write.table(rownames(F2_geno_data_2_Ae_Ol_new), file = "marker_info.txt" )
 ```
 
 ### calculate two point rf 
-https://github.com/MaloofLab/Li-eQTL-TAG-2018/blob/master/scripts/F2_map_construction_LOD3_rf0.5_missing_0.10.R   
+https://github.com/MaloofLab/Li-eQTL-2018/blob/master/scripts/F2_map_construction_LOD3_rf0.5_missing_0.10.R   
 
 ### use madmapper to assign markers to clusters/LGs 
 [http://cgpdb.ucdavis.edu/XLinkage/MadMapper/Genetic_Map_MadMapper_Arabidopsis.html]
@@ -214,7 +216,7 @@ for (i in c(1, 2, 3, 4, 6, 8, 9, 10, 12)){
 # remove null LGs 
 LG.f2 = LG.f2[-which(sapply(LG.f2, is.null))] 
 draw.map(LG.f2, names= F, grid=F, cex.mrk=0.5, cex.grp=0.75, horizontal=T)  
-write.map(LG.f2, "LG.f2.madmapper.C05C08.map")  
+write.map(LG.f2, "LG.f2.madmapper.C05C08.map")   
 ```
 
 replace markers with double crossover (indication of mis-genotyping) with missing data, and remove markers with too many missgenotyping 

@@ -165,7 +165,7 @@ SNP.GATK.basic.filter <- function(vcf){
   cat("The percentage of SNPs with QUAL > 40:", QUAL.40.pass.ratio, "\n")
   cat("genotyping call matrix for Ae:", "\n")
   print(Ae.gt.matrix)
-  cat("genotyping call matrix for Ol:", "\n")
+  cat("genotyping call matrix for Ol:", "\n") 
   print(Ol.gt.matrix)
   
   return(vcf.HQ)

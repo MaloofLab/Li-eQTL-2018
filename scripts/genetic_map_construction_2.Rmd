@@ -15,9 +15,10 @@ library(qtl)
 
 replace markers with double crossover (indication of mis-genotyping) with missing data, and remove markers with too many missgenotyping 
 ```{r}
-## all markers on A & C 
-LG.f2.madmapper <- read.cross("mm", file = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/F2_geno_for_one_map_final.txt", mapfile = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/LG.f2.madmapper.C05C08.map") 
+setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/") 
 
+## all markers on A & C 
+LG.f2.madmapper <- read.cross("mm", file = "../input/F2_geno_for_one_map_final.txt", mapfile = "../output/LG.f2.madmapper.C05C08.map")  
 summary(LG.f2.madmapper) # 2029  
 
 # iterate over all LGs 
@@ -114,12 +115,12 @@ LG.f2.madmapper.after.crossover <- drop.markers(LG.f2.madmapper.after.crossover,
 summaryMap(LG.f2.madmapper.after.crossover) # 2021 2929.9 
 
 ### write out gen file 
-write.cross(LG.f2.madmapper.after.crossover, format = "csvsr", filestem = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv") # check the format to make sure it is the right format for R/qtl package 
+write.cross(LG.f2.madmapper.after.crossover, format = "csvsr", filestem = "../output/LG.f2.madmapper.final.flipped_gen_C05C08.csv") # check the format to make sure it is the right format for R/qtl package 
 ```  
 
 ### make plot 
 ```{r}
-map_geno <- read.csv("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv_gen.csv") 
+map_geno <- read.csv("../output/LG.f2.madmapper.final.flipped_gen_C05C08.csv_gen.csv") 
 
 map_geno <-
 map_geno %>% 
@@ -144,5 +145,6 @@ plot.map(LG.f2.madmapper.after.crossover, alternate.chrid = T, main = "") # gene
 
 # summary map 
 map_summary <- summaryMap(LG.f2.madmapper.after.crossover) 
-write.csv(map_summary, file = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/map_summary.csv")   
+map_summary 
+write.csv(map_summary, file = "../output/map_summary.csv")   
 ``` 

@@ -57,8 +57,10 @@ library(qtl)
 replace markers with double crossover (indication of mis-genotyping) with missing data, and remove markers with too many missgenotyping 
 
 ```r
+setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/") 
+
 ## all markers on A & C 
-LG.f2.madmapper <- read.cross("mm", file = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/F2_geno_for_one_map_final.txt", mapfile = "~/Desktop/Brassica_project/KIAT_RNA_seq/F2/output/LG.f2.madmapper.C05C08.map") 
+LG.f2.madmapper <- read.cross("mm", file = "../input/F2_geno_for_one_map_final.txt", mapfile = "../output/LG.f2.madmapper.C05C08.map")  
 ```
 
 ```
@@ -561,13 +563,13 @@ summaryMap(LG.f2.madmapper.after.crossover) # 2021 2929.9
 
 ```r
 ### write out gen file 
-write.cross(LG.f2.madmapper.after.crossover, format = "csvsr", filestem = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv")
+write.cross(LG.f2.madmapper.after.crossover, format = "csvsr", filestem = "../output/LG.f2.madmapper.final.flipped_gen_C05C08.csv") # check the format to make sure it is the right format for R/qtl package 
 ```
 
 ### make plot 
 
 ```r
-map_geno <- read.csv("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/LG.f2.madmapper.final.flipped_gen_C05C08.csv_gen.csv") 
+map_geno <- read.csv("../output/LG.f2.madmapper.final.flipped_gen_C05C08.csv_gen.csv") 
 
 map_geno <-
 map_geno %>% 
@@ -601,5 +603,33 @@ plot.map(LG.f2.madmapper.after.crossover, alternate.chrid = T, main = "") # gene
 ```r
 # summary map 
 map_summary <- summaryMap(LG.f2.madmapper.after.crossover) 
-write.csv(map_summary, file = "~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/output/map_summary.csv")   
+map_summary 
+```
+
+```
+##         n.mar length ave.spacing max.spacing
+## A01       116  163.9         1.4        12.6
+## A02        52  132.5         2.6        19.2
+## A03       157  154.1         1.0         9.4
+## A04       107   91.4         0.9         6.3
+## A05        96  155.8         1.6        14.4
+## A06       251  240.2         1.0         7.4
+## A07       156  167.3         1.1        12.5
+## A08       110  110.9         1.0        12.1
+## A09       198  220.5         1.1        10.5
+## A10       163  227.6         1.4        14.2
+## C01        88  165.1         1.9        12.8
+## C02        47   94.7         2.1        13.1
+## C03       120  210.0         1.8         9.7
+## C04       103  182.2         1.8        13.7
+## C05        36  154.2         4.4        29.5
+## C06        60  125.1         2.1        12.2
+## C07        89  153.9         1.7         9.6
+## C08        46  120.6         2.7        22.3
+## C09        26   59.7         2.4        13.0
+## overall  2021 2929.9         1.5        29.5
+```
+
+```r
+write.csv(map_summary, file = "../output/map_summary.csv")   
 ```

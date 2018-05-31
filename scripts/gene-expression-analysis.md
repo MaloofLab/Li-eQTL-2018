@@ -66,7 +66,7 @@ dge.new <- calcNormFactors(dge.new, method = "TMM")
 mds <- plotMDS(dge.new, method = "bcv",labels = dge.new$samples$group)
 ```
 
-![](gene-expression-analysis__files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 ```r
 x <- as.data.frame(mds$x)
@@ -86,7 +86,7 @@ p.mds <- ggplot(data = distance_matrix) + theme_gray(base_size = 20) +
 p.mds
 ```
 
-![](gene-expression-analysis__files/figure-html/unnamed-chunk-3-2.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-3-2.png)<!-- -->
 
 ### design matrix and expression analysis 
 
@@ -390,7 +390,7 @@ DEgene.GO.ORA.gt <- GOseq.Bn.ORA(rownames(DEgene.new.gt))
 ## 'select()' returned 1:1 mapping between keys and columns
 ```
 
-![](gene-expression-analysis__files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ```
 ## [1] "enriched.GO is"
@@ -460,7 +460,7 @@ DEgene.GO.ORA.interaction <- GOseq.Bn.ORA(rownames(DEgene.new.interaction))
 ## 'select()' returned 1:1 mapping between keys and columns
 ```
 
-![](gene-expression-analysis__files/figure-html/unnamed-chunk-5-2.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
 
 ```
 ## [1] "enriched.GO is"
@@ -532,5 +532,5 @@ pl.heatmap1 <- ggplot(data = gt_gt.tissue.melt) +
 pl.heatmap1    
 ```
 
-![](gene-expression-analysis__files/figure-html/unnamed-chunk-5-3.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-3.png)<!-- -->
 

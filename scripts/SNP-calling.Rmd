@@ -67,13 +67,13 @@ output:
 # GATK -T IndelRealigner -R Brassica_napus_v4.1.chromosomes.fa -I Ae_unique_sorted_addrg_marked_duplicates_split.bam -targetIntervals Ae_forIndelRealigner.intervals -o Ae_realignedBam.bam 
 # GATK -T IndelRealigner -R Brassica_napus_v4.1.chromosomes.fa -I Ol_unique_sorted_addrg_marked_duplicates_split.bam -targetIntervals Ol_forIndelRealigner.intervals -o Ol_realignedBam.bam
  
-# 9) variant calling through slurm schedular using script https://github.com/MaloofLab/Li-eQTL-TAG-2018/blob/master/scripts/SNP_calling_GATK.slurm
+# 9) variant calling through slurm schedular using script https://github.com/MaloofLab/Li-eQTL-2018/blob/master/scripts/SNP_calling_GATK.slurm
 ```
 
 ### SNP filtering for Freebayes output 
 ```{r}
 library(boxr) # need to put data to box for loading 
-source("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/scripts/helper.R")
+source("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/helper.R")
 
 # use Da-Ae as an example for SNP filtering from Freebayes  
 vcf.freebayes.Ae <- read.table("~/Desktop/Brassica_project/KIAT_RNA_seq/parent_SNP/data/freebayes/as_diploid/no_bolting_unique_mapped/Ae_SNP_biallelic.recode.vcf",as.is=T,na.strings = ".:.:.:.:.:.:.") 

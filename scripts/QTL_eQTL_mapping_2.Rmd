@@ -9,7 +9,7 @@ output:
 
 # load libraries 
 ```{r}
-library(tidyverse)
+library(tidyverse) 
 library(qtl) 
 library(Biostrings)  
 ```

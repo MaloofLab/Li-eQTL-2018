@@ -10,7 +10,7 @@ output:
 ### read in data 
 
 ```r
-setwd("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/scripts/")
+setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/") 
 parent.read.count <- read.table("../input/read.count.tsv", header = T, check.names = F)
 rownames(parent.read.count) <- parent.read.count[,1]
 parent.read.count <- parent.read.count[,-1]  

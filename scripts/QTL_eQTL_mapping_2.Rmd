@@ -19,7 +19,11 @@ library("rtracklayer")
 ```
 
 ### load data 
+<<<<<<< HEAD
 ```{r,eval=FALSE} 
+=======
+```{r}
+>>>>>>> 7902f96fb4d7f27d50aa137a2360219cf5f80ba4
 library(boxr)
 box_auth()
 box_setwd(49886630432)

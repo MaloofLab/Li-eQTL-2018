@@ -7,9 +7,10 @@ output:
     keep_md: yes
 ---
 
+### load libraries 
 
 ```r
-library(tidyverse)
+library(tidyverse) 
 ```
 
 ```
@@ -54,7 +55,7 @@ library(qtl)
 ```
 
 ```r
-library(Biostrings)  
+library(Biostrings)
 ```
 
 ```
@@ -162,11 +163,64 @@ library(Biostrings)
 ##     compact
 ```
 
+```r
+library(IRanges)
+library(GenomicRanges)
+```
+
+```
+## Loading required package: GenomeInfoDb
+```
+
+```r
+library(GenomicFeatures) 
+```
+
+```
+## Loading required package: AnnotationDbi
+```
+
+```
+## Loading required package: Biobase
+```
+
+```
+## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with
+##     'browseVignettes()'. To cite Bioconductor, see
+##     'citation("Biobase")', and for packages 'citation("pkgname")'.
+```
+
+```
+## 
+## Attaching package: 'AnnotationDbi'
+```
+
+```
+## The following object is masked from 'package:dplyr':
+## 
+##     select
+```
+
+```r
+library("rtracklayer")
+```
+
+### load data 
+
+```r
+library(boxr)
+box_auth()
+box_setwd(49886630432)
+box_load(295501997932) # QTL result 
+box_load(295501558109) # eQTL result
+```
+
 ### QTL mapping result output 
 
 ```r
-setwd("~/Desktop/F2_paper/submission/Li-eQTL-TAG-2018/")
-load("input/QTL_result_all.Rdata")
+setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/")
 
 ### summarize QTL mapping result  
 threshold.95 <- tibble(perm.threshold = bind_rows(scanone.perm.imp.all) %>% as.numeric(), 
@@ -181,13 +235,7 @@ colnames(scanone.qtl.2)[3:ncol(scanone.qtl.2)] <- names(scanone.imp.all)
 scanone.gather <- scanone.qtl.2 %>%
   gather(key = trait, value = LOD, -chr, -pos) %>%
   left_join(threshold.95)
-```
 
-```
-## Joining, by = "trait"
-```
-
-```r
 sig.chrs <- scanone.gather %>% dplyr::filter(LOD > perm.threshold) %>%
   group_by(trait,chr) %>%
   dplyr::summarise(count = n())
@@ -213,13 +261,6 @@ bayesint.list <- lapply(bayesint.list,function(x)
 ) 
 
 bayesint.list %>% length() # 33
-```
-
-```
-## [1] 33
-```
-
-```r
 bayesint.list.scanone <- bayesint.list 
 
 bayesint.result.scanone <- as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # combine list into tibble 
@@ -229,22 +270,9 @@ bayesint.result.scanone <- as.tibble(bind_rows(bayesint.list,.id="trait")) %>% #
   dplyr::summarize(start=min(Mbp, na.rm = T),end=max(Mbp, na.rm = T),min_eQTL_LOD=min(LOD),max_eQTL_LOD=max(LOD), genetic_start=min(pos, na.rm = T), genetic_end=max(pos, na.rm = T)) %>% 
   #for the high QTL peaks the interval width is 0.  That is overly precise and need to widen those.
   mutate(start=ifelse(start==end,max(0,start-20000),start), end=ifelse(start==end,end+20000,end))
-```
 
-```
-## Warning: Expected 2 pieces. Missing pieces filled with `NA` in 15 rows [5,
-## 11, 26, 32, 35, 47, 53, 56, 62, 68, 83, 86, 92, 95, 98].
-```
-
-```r
 bayesint.result.scanone %>% dim() # 33 8 
-```
 
-```
-## [1] 33  8
-```
-
-```r
 ### cim
 threshold.95 <- tibble(perm.threshold = bind_rows(cim.perm.all) %>% as.numeric(), 
                        trait = colnames(bind_rows(cim.perm.all)))
@@ -259,13 +287,7 @@ colnames(cim.qtl.2)[3:ncol(cim.qtl.2)] <- names(cim.qtl.all)
 cim.gather <- cim.qtl.2 %>%
   gather(key = trait, value = LOD, -chr, -pos) %>%
   left_join(threshold.95)
-```
 
-```
-## Joining, by = "trait"
-```
-
-```r
 # look for overlap, for each trait, find QTL border and look for genes under QTL peaks 
 sig.chrs <- cim.gather %>% dplyr::filter(LOD > perm.threshold) %>%
   group_by(trait,chr) %>%
@@ -292,13 +314,7 @@ bayesint.list <- lapply(bayesint.list,function(x)
 ) 
 
 bayesint.list %>% length() # 26 
-```
 
-```
-## [1] 26
-```
-
-```r
 # save bayesint result for later 
 bayesint.list.cim <- bayesint.list
 
@@ -309,22 +325,9 @@ bayesint.result.cim <- as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # com
   dplyr::summarize(start=min(Mbp, na.rm = T),end=max(Mbp, na.rm = T),min_eQTL_LOD=min(LOD),max_eQTL_LOD=max(LOD), genetic_start=min(pos, na.rm = T), genetic_end=max(pos, na.rm = T)) %>% 
   #for the high QTL peaks the interval width is 0.  That is overly precise and need to widen those.
   mutate(start=ifelse(start==end,max(0,start-20000),start), end=ifelse(start==end,end+20000,end))
-```
 
-```
-## Warning: Expected 2 pieces. Missing pieces filled with `NA` in 8 rows [2,
-## 5, 29, 32, 44, 59, 68, 71].
-```
-
-```r
 bayesint.result.cim %>% dim() # 26 8
-```
 
-```
-## [1] 26  8
-```
-
-```r
 bayesint.result.cim$model <- rep("cim", nrow(bayesint.result.cim))
 bayesint.result.scanone$model <- rep("scanone", nrow(bayesint.result.scanone))
 
@@ -333,13 +336,7 @@ bayesint.result.cim %>%
   full_join(bayesint.result.scanone, by = c("trait", "chr")) 
 
 bayesint.result %>% dim() # 35 16 
-```
 
-```
-## [1] 35 16
-```
-
-```r
 for (i in 1:nrow(bayesint.result)){
   if(is.na(bayesint.result[i, "start.x"])){
     bayesint.result[i, c(3:9)] <- bayesint.result[i, c(10:16)]
@@ -350,43 +347,18 @@ bayesint.result <- bayesint.result[,1:9]
 colnames(bayesint.result) <- gsub("\\.x$", "", colnames(bayesint.result)) 
 
 bayesint.result %>% dim() # 35 9 
-```
 
-```
-## [1] 35  9
-```
-
-```r
 # make Table 2
 length(bayesint.list.scanone) # 33
-```
-
-```
-## [1] 33
-```
-
-```r
 length(bayesint.list.cim) # 26 
-```
 
-```
-## [1] 26
-```
-
-```r
 bayesint.result.scanone <- as.tibble(bind_rows(bayesint.list.scanone,.id="trait")) %>% # combine list into tibble 
   dplyr::select(trait,chr,pos,markername,LOD) %>% 
   group_by(trait,chr) %>% 
   dplyr::summarize(start=min(pos, na.rm = T),end=max(pos, na.rm = T),pos = median(pos, na.rm = T), LOD=max(LOD))  
 
 bayesint.result.scanone %>% dim() # 33 6 
-```
 
-```
-## [1] 33  6
-```
-
-```r
 bayesint.result.tmp <- as.tibble(bind_rows(bayesint.list.scanone,.id="trait")) %>% # combine list into tibble 
   dplyr::select(trait,chr,pos,markername,LOD) %>% 
   # separate(markername,into=c("chr1","Mbp"),sep="_", convert=TRUE) %>% 
@@ -400,13 +372,7 @@ bayesint.result.tmp %>%
   anti_join(bayesint.result.scanone) %>% 
   dplyr::select(trait, chr, markername) %>% 
   mutate(index = paste(trait, chr, sep = "_")) 
-```
 
-```
-## Joining, by = c("trait", "chr", "pos", "LOD", "index")
-```
-
-```r
 tmp <- c()
 
 for (i in seq_along(1:(nrow(test)/2))){
@@ -423,22 +389,10 @@ bayesint.result.scanone %>%
   dplyr::select(-index)  
 
 bayesint.result.scanone %>% dim() # 33 6 
-```
 
-```
-## [1] 33  6
-```
-
-```r
 ### cim result 
 bayesint.list.cim %>% length() # 26
-```
 
-```
-## [1] 26
-```
-
-```r
 bayesint.result <- as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # combine list into tibble 
   dplyr::select(trait,chr,pos,markername,LOD) %>% 
   group_by(trait,chr) %>% 
@@ -446,13 +400,7 @@ bayesint.result <- as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # combine
   #for the high QTL peaks the interval width is 0.  That is overly precise and need to widen those.
 
 bayesint.result %>% dim() # 26 6 
-```
 
-```
-## [1] 26  6
-```
-
-```r
 bayesint.result.tmp <- as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # combine list into tibble 
   dplyr::select(trait,chr,pos,markername,LOD) %>% 
   # separate(markername,into=c("chr1","Mbp"),sep="_", convert=TRUE) %>% 
@@ -466,13 +414,7 @@ bayesint.result.tmp %>%
   anti_join(bayesint.result) %>% 
   dplyr::select(trait, chr, markername) %>% 
   mutate(index = paste(trait, chr, sep = "_")) 
-```
 
-```
-## Joining, by = c("trait", "chr", "pos", "LOD", "index")
-```
-
-```r
 tmp <- c()
 
 for (i in seq_along(1:(nrow(test)/2))){
@@ -489,13 +431,7 @@ bayesint.result %>%
   dplyr::select(-index)  
 
 bayesint.result.cim %>% dim() # 26 6  
-```
 
-```
-## [1] 26  6
-```
-
-```r
 ### combine cim & scanone result 
 bayesint.result.scanone$model <- rep("scanone", nrow(bayesint.result.scanone))
 bayesint.result.cim$model <- rep("cim", nrow(bayesint.result.cim))
@@ -504,27 +440,8 @@ bayesint.result.paper <-
 bayesint.result.cim %>% 
   full_join(bayesint.result.scanone, by = c("trait", "chr")) 
 
-bayesint.result.paper %>% dim() # 32 12
-```
+bayesint.result.paper %>% dim() ### 35 12
 
-```
-## [1] 35 12
-```
-
-```r
-colnames(bayesint.result.paper)
-```
-
-```
-##  [1] "trait"                 "chr"                  
-##  [3] "confidence_interval.x" "pos.x"                
-##  [5] "LOD.x"                 "flanking_marker.x"    
-##  [7] "model.x"               "confidence_interval.y"
-##  [9] "pos.y"                 "LOD.y"                
-## [11] "flanking_marker.y"     "model.y"
-```
-
-```r
 for (i in 1:nrow(bayesint.result.paper)){
   if(is.na(bayesint.result.paper[i, "pos.x"])){
     bayesint.result.paper[i, c(3:7)] <- bayesint.result.paper[i, c(8:12)]
@@ -535,63 +452,31 @@ bayesint.result.paper <- bayesint.result.paper[,1:7]
 colnames(bayesint.result.paper) <- gsub("\\.x$", "", colnames(bayesint.result.paper)) 
 
 bayesint.result.paper %>% dim() # 35 7 
-```
 
-```
-## [1] 35  7
-```
-
-```r
-write.csv(bayesint.result.paper, file = "output/bayesint.result.paper.csv") 
+write.csv(bayesint.result.paper, file = "../output/bayesint.result.paper.csv") 
 
 ### combine with allele effect information, allelic effect was calculated using fitqtl(), and values were added to bayesint.result.paper.csv  
-bayesint.result.allele_effect <- read.csv("input/bayesint.result.paper_allele_effect.csv")
+bayesint.result.allele_effect <- read.csv("../input/bayesint.result.paper_allele_effect.csv")
 
 bayesint.result.paper.final <- 
 bayesint.result.paper %>%
   left_join(bayesint.result.allele_effect, by = c("trait", "chr")) %>% 
   mutate(model = model.x) %>%
   dplyr::select(-model.x, -model.y, -X) 
-```
 
-```
-## Warning: Column `trait` joining character vector and factor, coercing into
-## character vector
-```
-
-```
-## Warning: Column `chr` joining character vector and factor, coercing into
-## character vector
-```
-
-```r
 ### add physical position interval  
 bayesint.result.scanone <- as.tibble(bind_rows(bayesint.list.scanone,.id="trait")) %>% # combine list into tibble 
   dplyr::select(trait,chr,pos,markername,LOD) %>% 
   separate(markername,into=c("chr1","Mbp"),sep="_", convert=TRUE) %>% 
   group_by(trait,chr) %>% 
   dplyr::summarize(start=min(Mbp, na.rm = T),end=max(Mbp, na.rm = T),min_eQTL_LOD=min(LOD),max_eQTL_LOD=max(LOD))
-```
 
-```
-## Warning: Expected 2 pieces. Missing pieces filled with `NA` in 15 rows [5,
-## 11, 26, 32, 35, 47, 53, 56, 62, 68, 83, 86, 92, 95, 98].
-```
-
-```r
 bayesint.result.cim <- as.tibble(bind_rows(bayesint.list.cim,.id="trait")) %>% # combine list into tibble 
   dplyr::select(trait,chr,pos,markername,LOD) %>% 
   separate(markername,into=c("chr1","Mbp"),sep="_", convert=TRUE) %>% 
   group_by(trait,chr) %>% 
   dplyr::summarize(start=min(Mbp, na.rm = T),end=max(Mbp, na.rm = T),min_eQTL_LOD=min(LOD),max_eQTL_LOD=max(LOD))
-```
 
-```
-## Warning: Expected 2 pieces. Missing pieces filled with `NA` in 8 rows [2,
-## 5, 29, 32, 44, 59, 68, 71].
-```
-
-```r
 bayesint.result.cim$model <- rep("cim", nrow(bayesint.result.cim))
 bayesint.result.scanone$model <- rep("scanone", nrow(bayesint.result.scanone))
 
@@ -609,23 +494,18 @@ bayesint.result <- bayesint.result[,1:7]
 colnames(bayesint.result) <- gsub("\\.x$", "", colnames(bayesint.result)) 
 
 bayesint.result %>% dim() # 35 7 
-```
 
-```
-## [1] 35  7
-```
-
-```r
 bayesint.result.physical <-
 bayesint.result.paper.final %>% 
   left_join(bayesint.result, by= c("trait", "chr")) %>% 
   mutate(model = model.x) %>% 
   dplyr::select(-min_eQTL_LOD, -max_eQTL_LOD, -model.y, -model.x) 
   
-write.csv(bayesint.result.physical, file = "output/bayesint.result.paper.physical.csv") 
+bayesint.result.physical 
+write.csv(bayesint.result.physical, file = "../output/bayesint.result.paper.physical.csv") 
 
 # annotate QTL   
-load("input/BnapusAnnotation.Rdata") 
+load("../input/BnapusAnnotation.Rdata") 
 
 traitQTL.annotated <- lapply(1:nrow(bayesint.result),function(row) { # for each trait/module 
   qtl <- bayesint.result[row,]  
@@ -633,7 +513,7 @@ traitQTL.annotated <- lapply(1:nrow(bayesint.result),function(row) { # for each 
                     start >= qtl$start & # genes which fall into the QTL interval 
                     end <= qtl$end)
 } 
-)  
+)   
 
 names(traitQTL.annotated) <- bayesint.result$trait 
 
@@ -647,20 +527,287 @@ traitQTL.annotated %>%
   dplyr::select(-start.x, -end.x, -start.y, -end.y, -min_eQTL_LOD, -max_eQTL_LOD) 
 
 traitQTL.annotated %>% dim() # 18647     11
-```
 
-```
-## [1] 18647     9
-```
-
-```r
 ## get GO term for each gene
-load("input/napus_GO_combined.Rdata") 
+load("../input/napus_GO_combined.Rdata") 
 
 colnames(traitQTL.annotated)[3] <- "gene_ID"
 
 traitQTL.annotated <- 
 traitQTL.annotated %>% 
+  left_join(napus_GO_combined) 
+
+traitQTL.annotated %>% dim() #  18647    13 
+save(traitQTL.annotated, file =  "../output/traitQTL.annotated.flipped.Rdata")  
+```
+
+### eQTL mapping result output  
+
+```r
+# determine cis- and trans- eQTL 
+scanone_eQTL.F2 %>% dim() # 4944 56182 
+
+scanone_eQTL.F2$chr <- as.character(scanone_eQTL.F2$chr) 
+
+# get threshold 
+threshold.95 <- lod.thrs[5,] 
+threshold.95 # 4.18 
+
+# get all eQTL based on this threshold   
+eQTL_sign <- 
+sapply(colnames(scanone_eQTL.F2), function(gene) {
+  sum(scanone_eQTL.F2[,gene] > threshold.95) > 0 
+}) 
+
+sum(eQTL_sign) # 22,695 genes with eQTL 
+scanone_eQTL.F2 <- scanone_eQTL.F2[,eQTL_sign]  
+dim(scanone_eQTL.F2) # 4944 22695  
+
+# get bayesint result for every gene 
+scanone.gather <-  
+scanone_eQTL.F2 %>% 
+  gather(key = trait, value = LOD, -chr, -pos) 
+
+sig.chrs <- scanone.gather %>% filter(LOD > threshold.95) %>% 
+  group_by(trait,chr) %>% 
+  dplyr::summarise(count = n()) # this is to get the significant chr ID for each trait 
+
+sig.chrs %>% dim() # 26244         3
+
+bayesint.list <- apply(sig.chrs,1,function(hit) { # for every row("trait, chr, count") in eigengene module 
+    result <- bayesint(scanone_eQTL.F2[c("chr","pos",hit["trait"])],  
+                     chr=hit["chr"], 
+                     lodcolumn = 1, 
+                     expandtomarkers = TRUE 
+  )
+  colnames(result)[3] <- "LOD" 
+  result
+})  
+
+names(bayesint.list) <- sig.chrs$trait
+
+bayesint.list <- lapply(bayesint.list,function(x) 
+                          x %>% 
+                          as.data.frame() %>%
+                          rownames_to_column(var="markername")  %>% # make rownames to column and use "markername" as the colname for the new colomn  
+                          mutate(chr=as.character(chr)) 
+)  
+
+bayesint.result <- 
+as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # combine list into tibble 
+    dplyr::select(trait,chr,pos,markername,LOD) %>%  
+    separate(markername,into=c("chr1","Mbp"),sep="_", convert=TRUE) %>%  
+    group_by(trait,chr) %>% 
+    dplyr::summarize(start=min(Mbp, na.rm = T),end=max(Mbp, na.rm = T), pos=median(pos, na.rm = T), min_eQTL_LOD=min(LOD),max_eQTL_LOD=max(LOD), genetic_start=min(pos, na.rm = T), genetic_end=max(pos, na.rm = T)) %>% 
+  #for the high QTL peaks the interval width is 0.  That is overly precise and need to widen those.
+  # mutate(start=ifelse(start==end, start-20000,start), end=ifelse(start==end,end+20000,end)) 
+  mutate(start_modified=ifelse(start-1000000>0, start-1000000, 0), end_modified=end+1000000) 
+
+bayesint.result %>% dim() # 26244    11
+
+# get genome range 
+library(IRanges)
+library(GenomicRanges)
+library(GenomicFeatures) 
+library("rtracklayer") 
+
+### get gff file with gene chrom & pos info, gff3 file must be sorted 
+gff.mRNA <- read.table("../input/gff.mRNA")
+dim(gff.mRNA) # 101040      4 
+colnames(gff.mRNA) <- c("gene_CHROM", "gene_start", "gene_end", "gene_ID") 
+
+# look for cis-eQTL  
+bayesint.result.2 <- 
+bayesint.result %>% 
+  mutate(gene_ID = trait, eQTL_chr = chr, eQTL_start = start_modified, eQTL_end = end_modified) %>% 
+  dplyr::select(trait, gene_ID, eQTL_chr, pos, eQTL_start, eQTL_end, start, end, min_eQTL_LOD, max_eQTL_LOD, genetic_start, genetic_end) %>% 
+  left_join(gff.mRNA, by = "gene_ID") 
+
+bayesint.result.2$eQTL_chr <- paste("chr", bayesint.result.2$eQTL_chr, sep = "")
+
+cis_eQTL <- 
+bayesint.result.2 %>% 
+  filter(eQTL_chr == gene_CHROM) %>% 
+  filter((gene_start < eQTL_start & gene_end > eQTL_start) | # also need SNP pos... 
+         (gene_start >= eQTL_start & gene_end <= eQTL_end) |
+         (gene_start < eQTL_end & gene_end > eQTL_end)) 
+
+dim(cis_eQTL) # 11587    15
+
+trans_eQTL <- 
+bayesint.result.2 %>% 
+  anti_join(cis_eQTL) 
+
+save(cis_eQTL, trans_eQTL, file = "../output/cis_trans_result_new_flipped_C05C08.Rdata") 
+```
+
+### plot eQTL result 
+
+```r
+setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/") 
+load("../output/cis_trans_result_new_flipped_C05C08.Rdata") 
+
+# output plot 
+cis_eQTL$index <- paste(cis_eQTL$eQTL_chr, cis_eQTL$eQTL_start, cis_eQTL$eQTL_end, sep = "_")
+trans_eQTL$index <- paste(trans_eQTL$eQTL_chr, trans_eQTL$eQTL_start, trans_eQTL$eQTL_end, sep = "_")
+
+cis_eQTL$class <- rep("cis", nrow(cis_eQTL))  
+trans_eQTL$class <- rep("trans", nrow(trans_eQTL))   
+
+# get only main chromosome stuff   
+eQTL <- rbind(cis_eQTL, trans_eQTL) 
+eQTL <- eQTL[grep("random", eQTL$gene_CHROM, value = FALSE, invert = T),] # random scaffolds are exluced 
+eQTL$class <- factor(eQTL$class, levels = c("cis", "trans"))
+eQTL$gene_CHROM <- gsub("(chr)([[:print:]]+)", "\\2", eQTL$gene_CHROM)
+eQTL$eQTL_chr <- gsub("(chr)([[:print:]]+)", "\\2", eQTL$eQTL_chr)
+eQTL$gene_CHROM <- factor(eQTL$gene_CHROM, levels = c("C09", "C08", "C07", "C06", "C05", "C04", "C03", "C02", "C01", "A10", "A09", "A08", "A07", "A06", "A05", "A04", "A03", "A02", "A01"))
+eQTL$eQTL_chr <- factor(eQTL$eQTL_chr, levels = c("A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10", "C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09"))
+
+# plot   
+p.eQTL <- 
+eQTL %>% 
+  ggplot() + 
+  geom_point(aes(x = pos, y = gene_start, color = class), size = 0.5) +
+  facet_grid(gene_CHROM ~ eQTL_chr, switch = "both", scales = "free") + 
+  theme_classic() + 
+  theme(panel.spacing = unit(0, "lines"), panel.border = element_rect(colour = "black", fill=NA, size=0.1)) + 
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(), 
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank()) + 
+  labs(x = "eQTL genetic position", y = "gene start") + 
+  theme(text = element_text(size=8)) + 
+  scale_color_manual(values=c("red", "royalblue"))  
+
+p.eQTL    
+```
+
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+# trans-eQTL hotspot 
+
+```r
+library(qtlhot)
+load("../input/cis_trans_result_new_flipped.Rdata") 
+
+cis_eQTL %>% dim() # 11384    12
+trans_eQTL %>% dim() # 15197    12  
+
+length(cis_eQTL$gene_ID[cis_eQTL$gene_ID %in% trans_eQTL$gene_ID]) # 1814 genes not only have cis-eQTL, but also have trans-eQTL 
+
+scanone_eQTL.F2.trans <- scanone_eQTL.F2[,(colnames(scanone_eQTL.F2) %in% c("chr", "pos", trans_eQTL$gene_ID))]
+
+alphas <- seq(0.01, 0.10, by=0.01)  
+lod.thr <- lod.thrs[5]
+lod.thr 
+
+cross.F2$pheno <- cross.F2$pheno[,(colnames(cross.F2$pheno) %in% c(trans_eQTL$gene_ID))]
+
+### get only significant intervals for each e-trait, using LOD drop method 
+high1 <- highlod(scanone_eQTL.F2.trans, lod.thr = min(lod.thrs), drop.lod = 1.5) 
+max(high1, lod.thr = lod.thrs) # max number of e-trait fall into loci with different lod threshold   
+
+hots1 <- hotsize(high1, lod.thr = lod.thr)  
+summary(hots1) # for each genomic position 
+
+# permutation to get the statistical significance 
+# https://github.com/MaloofLab/Li-eQTL-2018/blob/master/scripts/trans_eQTL_hotspot_perm_transonly.R
+```
+
+# plot out trans-eQTL result 
+
+```r
+load("../output/hotperm1.trans.Rdata")
+load("../output/hots1.Rdata") 
+
+par(ps = 8, cex = 1, cex.main = 1, cex.axis = 0.8, tcl = -0.3) 
+plot(hots1, ylab="trans-eQTL counts") 
+abline(h = 129)  
+```
+
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+### integrate QTL and eQTL mapping result 
+
+```r
+load("../output/traitQTL.annotated.flipped.Rdata")
+load("../output/cis_trans_result_new_flipped_C05C08.Rdata")
+
+cis_eQTL %>% dim() #  11587    15
+```
+
+```
+## [1] 11587    15
+```
+
+```r
+trans_eQTL %>% dim() # 14657    15  
+```
+
+```
+## [1] 14657    15
+```
+
+```r
+traitQTL.annotated %>% dim() # 18647    13 
+```
+
+```
+## [1] 18647    13
+```
+
+```r
+# cis-regulator candidates 
+cis_eQTL.qtl.combined <- inner_join(cis_eQTL,traitQTL.annotated,by="gene_ID") 
+
+cis_eQTL.qtl.combined.final <- 
+cis_eQTL.qtl.combined %>% 
+  mutate(eQTL_start = start.x, eQTL_end = end.x, QTL_start = start.y, QTL_end = end.y, eQTL_genetic_start = genetic_start.x, eQTL_genetic_end = genetic_end.x, QTL_genetic_start = genetic_start.y, QTL_genetic_end = genetic_end.y) %>% 
+  dplyr::select(-c(start.x, end.x, start.y, end.y, genetic_start.x, genetic_end.x, genetic_start.y, genetic_end.y)) 
+
+write.csv(cis_eQTL.qtl.combined.final, file = "../output/cis_eQTL.qtl.combined.final.csv")    
+  
+# trans-eQTL overlap with trait QTL, use genetic interval as the interval for both trait QTL and eQTL  
+traitQTL <-  
+traitQTL.annotated %>%  
+  group_by(trait, chrom, genetic_start, genetic_end, model, start, end) %>% 
+  dplyr::summarise(count = n())  
+
+gff.trans_eQTL <- GRanges(seqnames = Rle(trans_eQTL$eQTL_chr),ranges = IRanges(start = trans_eQTL$genetic_start, end = trans_eQTL$genetic_end), names = trans_eQTL$gene_ID) 
+
+gff.trait_qtl<- GRanges(seqnames = Rle(paste("chr", traitQTL$chrom, sep = "")),ranges = IRanges(start = traitQTL$genetic_start, end = traitQTL$genetic_end), trait = traitQTL$trait)   
+
+# trans-regulator target candidates
+trans_candidate <- mergeByOverlaps(gff.trait_qtl, gff.trans_eQTL) 
+trans_candidate %>% dim()  # 4022    4  
+```
+
+```
+## [1] 4022    4
+```
+
+```r
+### add the rest of information from trans_eQTL & trait_QTL 
+trans_candidate <- 
+trans_candidate %>% 
+  as.data.frame() %>% 
+  mutate(chrom = gff.trait_qtl.seqnames, trait_genetic_start = gff.trait_qtl.start, trait_genetic_end = gff.trait_qtl.end, gene_ID = names, eQTL_chr = gff.trans_eQTL.seqnames, eQTL_genetic_start = gff.trans_eQTL.start, eQTL_genetic_end = gff.trans_eQTL.end) %>% 
+  dplyr::select(chrom, trait_genetic_start, trait_genetic_end, trait, gene_ID, eQTL_chr, eQTL_genetic_start, eQTL_genetic_end) 
+
+### annotate trans_eQTL 
+load("../input/BnapusAnnotation.Rdata") 
+
+trans_candidate.final <- 
+trans_candidate %>%  
+  left_join(BnapusAnnotation, c("gene_ID" = "name")) %>% 
+  mutate(trait_chrom = chrom.x, gene.chrom = chrom.y, gene.start = start, gene.end = end) %>% 
+  dplyr::select(-c(chrom.x, chrom.y, start, end))   
+
+## get GO term for each gene
+load("../input/napus_GO_combined.Rdata") 
+
+trans_candidate.final <- 
+trans_candidate.final %>% 
   left_join(napus_GO_combined) 
 ```
 
@@ -669,41 +816,366 @@ traitQTL.annotated %>%
 ```
 
 ```r
-traitQTL.annotated %>% dim() #  18647    13 
+trans_candidate.final %>% dim() # 4022 16 
 ```
 
 ```
-## [1] 18647    11
+## [1] 4022   16
 ```
 
 ```r
-save(traitQTL.annotated, file =  "output/traitQTL.annotated.flipped.Rdata")  
+trans_candidate.final$gene_ID %>% unique() %>% length() # 1972 
 ```
 
-### eQTL mapping result output  
+```
+## [1] 1972
+```
 
 ```r
-# determine cis- and trans- eQTL 
-
-
-# output plot 
-
-
-# trans-eQTL hotspot 
+write.csv(trans_candidate.final, file = "../output/trans_candidate.final.csv")  
 ```
 
-### integrate QTL and eQTL mapping result 
+### cis-coding candidates  
 
 ```r
-# cis-coding candidates 
+SNP_all <-  read.csv("../input/vcf.Ae.Ol.intersect.df.2.csv", row.names = 1, as.is = T)
 
+SNP_all <- data.frame(sapply(SNP_all, function(i) sub("1-Jan", "1/1", i))) %>% 
+  dplyr::select(-subgenome, -Chr_ID)
 
-# cis-regulator candidates
+write.csv(SNP_all, file = "../output/SNP_all.csv")
 
+# sh ~/KIAT/F2/SNP_info_extract_vcf_ann.sh ~/F2/for_paper/candidate_gene_SNP_mutation/SNP_all.csv /Network/Servers/avalanche.plb.ucdavis.edu/Volumes/Mammoth/Users/ruijuanli/SNP_parent/result/freebayes/Ae_Ol_modified_SNPonly_biallelic.recode.ann.modified2.vcf 
 
-# trans-regulator target candidates
+sig_SNP_ann <- read_table2("../input/significant_SNP_annotation", col_names=F)
+dim(sig_SNP_ann) # 62875     6 
+colnames(sig_SNP_ann) <- c("CHROM", "POS", "REF", "ALT", "mutation_type", "impact")
 
+SNP_all$POS <- SNP_all$POS %>% as.character() %>% as.numeric()
 
-# plot important candidates 
+SNP_all <- 
+SNP_all %>% 
+  left_join(sig_SNP_ann)
+
+gff.mRNA
+colnames(gff.mRNA) <- c("CHROM", "start", "end", "name") 
+genes <- GRanges(seqnames = Rle(gff.mRNA$CHROM),ranges = IRanges(start = gff.mRNA$start, end = gff.mRNA$end), names = gff.mRNA$name)
+
+SNP <- GRanges(seqnames = Rle(sig_SNP_ann$CHROM), ranges = IRanges(start = sig_SNP_ann$POS, end = sig_SNP_ann$POS), ID = paste(sig_SNP_ann$CHROM, sig_SNP_ann$POS, sep = "_"))
+
+SNP_gene <- mergeByOverlaps(SNP, genes) # warning message here. look out!!!!!! 
+
+SNP_gene_df <- as.data.frame(SNP_gene)
+SNP_gene_df %>% dim() # 58969    14
+
+SNP_gene_final <- SNP_gene_df[,c("SNP.ID", "genes.seqnames", "SNP.start", "names")]
+SNP_all$SNP.ID <- paste(SNP_all$CHROM, SNP_all$POS, sep = "_") 
+
+SNP_all <- 
+SNP_all %>% 
+  left_join(SNP_gene_final)
+
+dim(SNP_all) #  62958    12
+
+unique(SNP_all$mutation_type) 
+
+# the kind of mutations that could affect protein function here: "missense_variant&splice_region_variant", "missense_variant", "stop_lost", "splice_region_variant&synonymous_variant", "splice_donor_variant&intron_variant", "splice_region_variant&intron_variant", "stop_gained&splice_region_variant", "splice_acceptor_variant&intron_variant", "stop_lost&splice_region_variant", "splice_region_variant&stop_retained_variant", "initiator_codon_variant", "start_lost"  
+
+# combine mutation type with candidate genes 
+load("../output/traitQTL.annotated.flipped.Rdata")
+
+traitQTL.annotated <- 
+traitQTL.annotated %>% 
+  semi_join(SNP_all, c("gene_ID" = "names")) %>% # keep all genes which have SNP annotations 
+  left_join(SNP_all, c("gene_ID" = "names"))   # add SNP info/annotation to the QTL gene
+
+# just keep mutations which would affect protein function 
+traitQTL.annotated.SNP <- 
+traitQTL.annotated %>% 
+  filter(mutation_type != "synonymous_variant" & 
+           mutation_type != "downstream_gene_variant" & 
+           mutation_type != "upstream_gene_variant" & 
+           mutation_type != "intron_variant" & 
+           mutation_type != "stop_retained_variant") %>% 
+  dplyr::select(trait, SNP.ID, mutation_type, impact, gene_ID, AGI, At_symbol, B.napus_GO_term, GO_des, chrom, Ae.gt, Ol.gt, REF, ALT) 
+ 
+write.csv(traitQTL.annotated.SNP, file = "../output/traitQTL.annotated.SNP.csv")
 ```
+
+### plot for three genes 
+
+```r
+load("../output/cim.qtl_two_genes.Rdata")
+load("../output/cim.qtl_FLC.Rdata")
+source("../scripts/helper.R") 
+```
+
+```
+## Loading required package: BiocParallel
+```
+
+```
+## Loading required package: Rsamtools
+```
+
+```
+## Loading required package: GenomicAlignments
+```
+
+```
+## Loading required package: SummarizedExperiment
+```
+
+```
+## 
+## Attaching package: 'GenomicAlignments'
+```
+
+```
+## The following objects are masked from 'package:dplyr':
+## 
+##     first, last
+```
+
+```
+## 
+## Attaching package: 'ShortRead'
+```
+
+```
+## The following object is masked from 'package:qtl':
+## 
+##     clean
+```
+
+```
+## The following object is masked from 'package:dplyr':
+## 
+##     id
+```
+
+```
+## The following object is masked from 'package:purrr':
+## 
+##     compose
+```
+
+```
+## Loading required package: BiasedUrn
+```
+
+```
+## Loading required package: geneLenDataBase
+```
+
+```
+## 
+```
+
+```
+## Loading required package: XML
+```
+
+```
+## Loading required package: dynamicTreeCut
+```
+
+```
+## Loading required package: fastcluster
+```
+
+```
+## Warning: package 'fastcluster' was built under R version 3.2.5
+```
+
+```
+## 
+## Attaching package: 'fastcluster'
+```
+
+```
+## The following object is masked from 'package:stats':
+## 
+##     hclust
+```
+
+```
+## ==========================================================================
+## *
+## *  Package WGCNA 1.63 loaded.
+## *
+## *    Important note: It appears that your system supports multi-threading,
+## *    but it is not enabled within WGCNA in R. 
+## *    To allow multi-threading within WGCNA with all available cores, use 
+## *
+## *          allowWGCNAThreads()
+## *
+## *    within R. Use disableWGCNAThreads() to disable threading if necessary.
+## *    Alternatively, set the following environment variable on your system:
+## *
+## *          ALLOW_WGCNA_THREADS=<number_of_processors>
+## *
+## *    for example 
+## *
+## *          ALLOW_WGCNA_THREADS=4
+## *
+## *    To set the environment variable in linux bash shell, type 
+## *
+## *           export ALLOW_WGCNA_THREADS=4
+## *
+## *     before running R. Other operating systems or shells will
+## *     have a similar command to achieve the same aim.
+## *
+## ==========================================================================
+```
+
+```
+## 
+## Attaching package: 'WGCNA'
+```
+
+```
+## The following object is masked from 'package:IRanges':
+## 
+##     cor
+```
+
+```
+## The following object is masked from 'package:stats':
+## 
+##     cor
+```
+
+```
+## Warning: package 'reshape2' was built under R version 3.2.5
+```
+
+```
+## 
+## Attaching package: 'reshape2'
+```
+
+```
+## The following object is masked from 'package:tidyr':
+## 
+##     smiths
+```
+
+```
+## Warning: package 'scales' was built under R version 3.2.5
+```
+
+```
+## 
+## Attaching package: 'scales'
+```
+
+```
+## The following object is masked from 'package:purrr':
+## 
+##     discard
+```
+
+```
+## The following object is masked from 'package:readr':
+## 
+##     col_factor
+```
+
+```
+## Warning: package 'plyr' was built under R version 3.2.5
+```
+
+```
+## -------------------------------------------------------------------------
+```
+
+```
+## You have loaded plyr after dplyr - this is likely to cause problems.
+## If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
+## library(plyr); library(dplyr)
+```
+
+```
+## -------------------------------------------------------------------------
+```
+
+```
+## 
+## Attaching package: 'plyr'
+```
+
+```
+## The following object is masked from 'package:ShortRead':
+## 
+##     id
+```
+
+```
+## The following object is masked from 'package:XVector':
+## 
+##     compact
+```
+
+```
+## The following object is masked from 'package:IRanges':
+## 
+##     desc
+```
+
+```
+## The following object is masked from 'package:S4Vectors':
+## 
+##     rename
+```
+
+```
+## The following objects are masked from 'package:dplyr':
+## 
+##     arrange, count, desc, failwith, id, mutate, rename, summarise,
+##     summarize
+```
+
+```
+## The following object is masked from 'package:purrr':
+## 
+##     compact
+```
+
+```r
+oil_eQTL <- 
+qtl_plot(input = rbind(data.frame(cim.qtl[["Erucic_acid"]], method = "Erucic_acid", group = "QTL"), 
+                       data.frame(cim.qtl[["Oleic_acid"]], method = "Oleic_acid", group = "QTL"), 
+                       data.frame(cim.qtl[["Stearic_acid"]], method = "Stearic_acid", group = "QTL"),
+                       data.frame(cim.qtl[["Palmitic_acid"]], method = "Palmitic_acid", group = "QTL"),
+                       data.frame(cim.qtl[["Linoleic_acid"]], method = "Linoleic_acid", group = "QTL"),
+                       data.frame(cim.qtl[["Linolenic_acid"]], method = "Linolenic_acid", group = "QTL"),
+                       data.frame(cim.qtl[["vaccenic_acid"]], method = "vaccenic_acid", group = "QTL"),
+                       data.frame(cim.qtl[["BnaA08g11140D"]], method = "BnaA08g11140D", group = "eQTL"),
+                       data.frame(cim.qtl[["BnaA08g11060D"]], method = "BnaA08g11060D", group = "eQTL")
+                       ),
+         chrs = c("A08"), 
+         # lod = cim.perm[[1]], 
+         title = "", 
+         rug = TRUE)     
+```
+
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+```r
+growth_eQTL <- 
+qtl_plot(input = rbind(data.frame(cim.qtl[["days_to_bolt"]], method = "days_to_bolt", group = "QTL"), 
+                       data.frame(cim.qtl[["days_to_flower"]], method = "days_to_flower", group = "QTL"), 
+                       data.frame(cim_growth_model_trait.F2[["height_Hmax"]], method = "height_Hmax", group = "QTL"), 
+                       data.frame(cim_growth_model_trait.F2[["leaf_number_I"]], method = "leaf_number_I", group = "QTL"), 
+                       data.frame(cim_growth_model_trait.F2[["BnaA10g22080D"]], method = "BnaA10g22080D", group = "eQTL"),     
+                       data.frame(cim.qtl[["root_weight_2016_05_13"]], method = "root_weight_2016_05_13", group = "QTL")), 
+                       
+         chrs = c("A10"), 
+         # lod = cim.perm[[1]], 
+         title = "", 
+         rug = TRUE)      
+```
+
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
 

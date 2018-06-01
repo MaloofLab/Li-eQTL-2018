@@ -11,7 +11,7 @@ output:
 ```{r}
 library(tidyverse) 
 library(qtl) 
-library(Biostrings)  
+library(Biostrings)   
 ```
 
 ### QTL mapping result output 
@@ -413,7 +413,7 @@ gff.mRNA <- read.table("~/Reference/B.napus/gff.mRNA")
 dim(gff.mRNA) # 101040      4 
 colnames(gff.mRNA) <- c("gene_CHROM", "gene_start", "gene_end", "gene_ID") 
 
-# look for cis-eQTL 
+# look for cis-eQTL  
 bayesint.result.2 <- 
 bayesint.result %>% 
   mutate(gene_ID = trait, eQTL_chr = chr, eQTL_start = start_modified, eQTL_end = end_modified) %>% 

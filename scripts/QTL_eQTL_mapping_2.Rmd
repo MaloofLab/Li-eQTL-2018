@@ -7,17 +7,26 @@ output:
     keep_md: yes
 ---
 
-# load libraries 
+# load libraries ### need to run this script on whitney... 
 ```{r}
 library(tidyverse) 
 library(qtl) 
 library(Biostrings)   
 ```
 
+# load data 
+```{r}
+library(boxr)
+box_auth()
+box_setwd(49886630432)
+box_load(295501997932) # QTL result 
+box_load(295501558109) # eQTL result
+```
+
 ### QTL mapping result output 
 ```{r}
 setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/")
-load("input/QTL_result_all.Rdata")
+# load("input/QTL_result_all.Rdata")
 
 ### summarize QTL mapping result  
 threshold.95 <- tibble(perm.threshold = bind_rows(scanone.perm.imp.all) %>% as.numeric(), 
@@ -237,7 +246,7 @@ bayesint.result.paper <-
 bayesint.result.cim %>% 
   full_join(bayesint.result.scanone, by = c("trait", "chr")) 
 
-bayesint.result.paper %>% dim() # 32 12
+bayesint.result.paper %>% dim() ### 35 12
 
 for (i in 1:nrow(bayesint.result.paper)){
   if(is.na(bayesint.result.paper[i, "pos.x"])){
@@ -310,7 +319,7 @@ traitQTL.annotated <- lapply(1:nrow(bayesint.result),function(row) { # for each 
                     start >= qtl$start & # genes which fall into the QTL interval 
                     end <= qtl$end)
 } 
-)  
+)   
 
 names(traitQTL.annotated) <- bayesint.result$trait 
 

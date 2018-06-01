@@ -7,14 +7,14 @@ output:
     keep_md: yes
 ---
 
-# load libraries ### need to run this script on whitney... 
+### load libraries 
 ```{r}
 library(tidyverse) 
 library(qtl) 
 library(Biostrings)   
 ```
 
-# load data 
+### load data 
 ```{r}
 library(boxr)
 box_auth()

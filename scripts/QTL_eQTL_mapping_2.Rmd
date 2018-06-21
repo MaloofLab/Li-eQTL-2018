@@ -688,6 +688,6 @@ qtl_plot(input = rbind(data.frame(cim.qtl[["days_to_bolt"]], method = "days_to_b
          chrs = c("A10"), 
          # lod = cim.perm[[1]], 
          title = "", 
-         rug = TRUE)      
+         rug = TRUE)       
 ```
 

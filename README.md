@@ -7,7 +7,7 @@ The main scripts are the .MD and .RMD files in the scripts folder.
 
 * gene-expression-analysis.md starts from RNAseq counts, TMM normalizes and fits glm model in edgeR for gene expression analysis. GO enrichment result of the differentially expressed genes is displayed in the file. 
 
-* SNP-calling.Rmd shows the SNP calling pipeline using Freebayes and GATK, SNP filtering of the output from both Feebayes and GATK, as well as the combine of the two SNP dataset. SNP annotation pipeline using snpEff is also included in this script. 
+* SNP-calling.Rmd shows the SNP calling pipeline using Freebayes and GATK, SNP filtering of the output from both Feebayes and GATK, as well as how the two SNP dataset were combined. SNP annotation pipeline using snpEff is also included in this script. 
 
 * genetic-map-construction.Rmd starts from genotyping file of the F2 population, filters and formats the data, calculates two point recombination fraction, does clustinerg analysis to place markers on their respective linkage groups, and order markers on their linkage groups. 
 

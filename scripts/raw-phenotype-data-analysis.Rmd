@@ -5,4 +5,6 @@ date: "5/7/2018"
 output: html_document
 ---
 
+### phenotypic traits stats summary (histogram & correlation plot & broad sense heritability)
+
 

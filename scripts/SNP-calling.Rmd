@@ -259,3 +259,8 @@ length(vcf.Ae.Ol.intersect.2) # 63981 same SNP positions between freebayes & GAT
 # java -jar snpEff.jar napus SNP_biallelic.recode.vcf > SNP_biallelic.recode.ann.vcf 
 ```
 
+### circus plot  
+```{r}
+
+```
+

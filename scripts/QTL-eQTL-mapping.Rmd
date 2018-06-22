@@ -143,4 +143,3 @@ save(cross.F2, scanone_eQTL.F2, permtest.F2, lod.thrs, file = "scanone-eqtl_F2_f
 ```
 
 
-

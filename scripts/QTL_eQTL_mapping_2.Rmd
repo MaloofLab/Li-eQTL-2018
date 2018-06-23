@@ -528,7 +528,7 @@ summary(hots1) # for each genomic position
 # https://github.com/MaloofLab/Li-eQTL-2018/blob/master/scripts/trans_eQTL_hotspot_perm_transonly.R
 ```
 
-# plot out trans-eQTL result 
+### plot out trans-eQTL result 
 ```{r}
 load("../output/hotperm1.trans.Rdata")
 load("../output/hots1.Rdata") 
@@ -536,6 +536,11 @@ load("../output/hots1.Rdata")
 par(ps = 8, cex = 1, cex.main = 1, cex.axis = 0.8, tcl = -0.3) 
 plot(hots1, ylab="trans-eQTL counts") 
 abline(h = 129)  
+```
+
+### analysis of the trans-eQTL loci for FA composition 
+```{r}
+
 ```
 
 ### integrate QTL and eQTL mapping result 

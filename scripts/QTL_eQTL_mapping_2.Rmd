@@ -570,8 +570,10 @@ plot.all.paper
 ```
 
 ### scantwo & epistatic effect for linolenic acid 
+
+scantwo analysis on HPC https://github.com/MaloofLab/Li-eQTL-2018/tree/master/scripts/scantwo 
 ```{r} 
-# scantwo analysis on HPC 
+# linolenic acid scantwo result 
 
 ```
 
@@ -655,8 +657,122 @@ abline(h = 129)
 ```
 
 ### analysis of the trans-eQTL loci for FA composition 
-```{r}
 
+while other poeple all find FAE to be the gene responsible for erucic acid content, I found them to be controlled by a trans-eQTL hotspot on A03. Now I want to see
+
+1. whether adding genotype info of A03 loci info can increase the R2 of erucic acid
+
+2. whether adding expression of the two FAE1 genes can increase the R2 of erucic acid
+
+using brms() package for this purpose
+
+```{r}
+library(brms)
+load("../input/F2_geno_data_2_Ae_Ol_new.Rdata")
+
+ID <- c("chrC03_53442609", "chrA08_10120555", "chrA03_12781099")
+geno <- as.data.frame(t(F2_geno_data_2_Ae_Ol_new[rownames(F2_geno_data_2_Ae_Ol_new) %in% ID,])) 
+geno$id <- paste("Sample_F2_", rownames(geno), sep = "")
+
+# expression 
+cross.F2 <- read.cross("csvsr", genfile ="../input/LG.f2.madmapper.final_gen_revised_flipped_C05C08.csv", 
+                         phefile = "../input/vstMat.f2.batch.corrected_revised.csv",
+                         genotypes = c("AA", "AB", "BB"))   
+
+ID_gene <- c("BnaA08g11130D", "BnaC03g65980D")
+
+expression <- cross.F2$pheno[,colnames(cross.F2$pheno) %in% c(ID_gene, "id")] 
+
+# pheno 
+LG.f2.after.crossover <- read.cross("csvsr", genfile = "~/F2/data/QTL_analysis/LG.f2.madmapper.final_gen_revised_flipped.csv",
+                     phefile = "~/F2/data/QTL_analysis/F2.pheno.csv", 
+                     genotypes = c("AA", "AB", "BB")) 
+
+pheno <- 
+LG.f2.after.crossover$pheno %>% 
+  dplyr::select(ends_with("acid"), id)
+
+# combine 
+FAE1_data <- 
+geno %>% 
+  left_join(expression) %>%
+  left_join(pheno) 
+
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("-",NA,x)))
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("A",-1,x)))
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("B",1,x)))
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("H",0,x)))
+FAE1_data$BnaC03g65980D <- as.numeric(FAE1_data$BnaC03g65980D)
+FAE1_data$BnaA08g11130D <- as.numeric(FAE1_data$BnaA08g11130D)
+FAE1_data$chrA03_12781099 <- as.numeric(as.character(FAE1_data$chrA03_12781099))
+FAE1_data$chrA08_10120555 <- as.numeric(as.character(FAE1_data$chrA08_10120555))
+FAE1_data$chrC03_53442609 <- as.numeric(as.character(FAE1_data$chrC03_53442609))
+
+FAE1_data$Erucic_acid <- as.numeric(FAE1_data$Erucic_acid)
+
+# stats analysis 
+  # just the two loci, with interaction 
+  FAE1 <- brm(Erucic_acid ~ chrC03_53442609 * chrA08_10120555,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))  # mean of 0 and sd of 50
+
+  # add genotype from A03, pairwise interaction 
+  FAE1.2 <- brm(Erucic_acid ~ chrA03_12781099 + chrA08_10120555 + chrC03_53442609 + chrA03_12781099:chrA08_10120555 + chrA03_12781099:chrC03_53442609 + chrC03_53442609:chrA08_10120555,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))
+
+  # no interaction at all, add genotype from A03 
+  FAE1.2.2 <- brm(Erucic_acid ~ chrA03_12781099 + chrA08_10120555 + chrC03_53442609,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))
+
+  # just add interaction between A08 and C03
+  FAE1.2.3 <- brm(Erucic_acid ~ chrA03_12781099 + chrA08_10120555 + chrC03_53442609 + chrA08_10120555:chrC03_53442609,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))
+  
+  ### no interaction, just the two major QTL 
+  FAE0 <- brm(Erucic_acid ~ chrC03_53442609 + chrA08_10120555,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))  # mean of 0 and sd of 10 
+
+# Erucic acid A03 is signficant with positive effect from Da-Ol-1 
+
+loo(FAE0, FAE1) 
+loo(FAE1.2, FAE1.2.2, FAE1.2.3) 
+
+### hypothesis testing 
+# A08 & C03, no interaction 
+summary(FAE0) 
+hypothesis(FAE0, "chrA08_10120555 < 0")
+hypothesis(FAE0, "chrC03_53442609 < 0")  
+
+# only A08 & C03
+summary(FAE1)
+hypothesis(FAE1, "chrA08_10120555 < 0")
+hypothesis(FAE1, "chrC03_53442609 < 0")  
+
+# add A03, pairwise interaction 
+summary(FAE1.2)
+hypothesis(FAE1.2, "chrA08_10120555 < 0") 
+hypothesis(FAE1.2, "chrC03_53442609 < 0") 
+hypothesis(FAE1.2, "chrA03_12781099 > 0")
+
+# add A03, no interaction  
+summary(FAE1.2.2) 
+hypothesis(FAE1.2.2, "chrA08_10120555 < 0")  
+hypothesis(FAE1.2.2, "chrC03_53442609 < 0") 
+hypothesis(FAE1.2.2, "chrA03_12781099 > 0")  ### allele from Da-Ol-1 increase Erucic acid level. 
+plot(hypothesis(FAE1.2.2, "chrA03_12781099 > 0"))   
+
+# add A03, and include interaction between A08 and C03
+summary(FAE1.2.3)
+hypothesis(FAE1.2.3, "chrA08_10120555 < 0") 
+hypothesis(FAE1.2.3, "chrC03_53442609 < 0") 
+hypothesis(FAE1.2.3, "chrA03_12781099 > 0")  ### allele from Da-Ol-1 increase Erucic acid level. 
+plot(hypothesis(FAE1.2.2, "chrA03_12781099 > 0")) 
+
+# A03 genotype is significant for Erucic acid, how about other FA? test oleic acid, did the same thing, and found the opposite effect for Oleic acid.   
 ```
 
 ### integrate QTL and eQTL mapping result 

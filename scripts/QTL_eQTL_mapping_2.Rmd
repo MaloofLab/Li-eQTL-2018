@@ -573,8 +573,7 @@ plot.all.paper
 
 scantwo analysis on HPC https://github.com/MaloofLab/Li-eQTL-2018/tree/master/scripts/scantwo 
 ```{r} 
-# linolenic acid scantwo result 
-
+# linolenic acid scantwo result use effectplot() in Q/qtl package 
 ```
 
 ### plot eQTL result 
@@ -667,7 +666,7 @@ while other poeple all find FAE to be the gene responsible for erucic acid conte
 using brms() package for this purpose
 
 https://github.com/leejimmy93/KIAT/blob/master/F2/scantwo_flipped.Rmd
-```{r}
+```{r, eval=FALSE}
 library(brms)
 load("../input/F2_geno_data_2_Ae_Ol_new.Rdata")
 

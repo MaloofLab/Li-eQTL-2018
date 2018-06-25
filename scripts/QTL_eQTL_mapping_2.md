@@ -641,6 +641,166 @@ bayesint.result.2 %>%
 save(cis_eQTL, trans_eQTL, file = "../output/cis_trans_result_new_flipped_C05C08.Rdata") 
 ```
 
+### major QTL plot 
+
+```r
+load("../input/QTL_result_all.Rdata")
+load("../input/bayesint.result.physical.Rdata")
+
+bayesint.result_scanone <- 
+bayesint.result %>% 
+  filter(model == "scanone")  
+
+scanone_result <- list()
+
+for (i in 1:nrow(bayesint.result_scanone)) {
+  trait <- bayesint.result_scanone$trait[i] 
+  chr1 <- bayesint.result_scanone$chr[i] 
+  tmp <- scanone.imp.all[[trait]] 
+  scanone_result[[i]] <- tmp %>% filter(chr == chr1) 
+}
+
+names(scanone_result) <- bayesint.result_scanone$trait
+
+bayesint.result_cim <- 
+bayesint.result %>% 
+  filter(model == "cim")  
+
+cim_result <- list()
+
+for (i in 1:nrow(bayesint.result_cim)) {
+  trait <- bayesint.result_cim$trait[i] 
+  chr1 <- bayesint.result_cim$chr[i] 
+  tmp <- cim.qtl.all[[trait]] 
+  cim_result[[i]] <- tmp %>% filter(chr == chr1) 
+}
+
+names(cim_result) <- bayesint.result_cim$trait
+
+# combine result and plot 
+# add model label 
+for(i in 1:length(scanone_result)){
+  scanone_result[[i]]$model <- rep("scanone", nrow(scanone_result[[i]]))
+  scanone_result[[i]]$trait <- rep(names(scanone_result)[i], nrow(scanone_result[[i]]))
+}
+
+for(i in 1:length(cim_result)){
+  cim_result[[i]]$model <- rep("cim", nrow(cim_result[[i]]))
+  cim_result[[i]]$trait <- rep(names(cim_result)[i], nrow(cim_result[[i]]))
+}
+
+scanone <- 
+lapply(1:length(scanone_result), function(i) {
+  tmp <- scanone_result[[i]] %>% 
+    filter(chr == "A08" | chr == "C03")
+  if(nrow(tmp) > 0){
+    tmp
+  }
+})
+
+cim <- 
+lapply(1:length(cim_result), function(i) {
+  tmp <- cim_result[[i]] %>% 
+    filter(chr == "A08" | chr == "C03")
+    if(nrow(tmp) > 0){
+    tmp
+    }
+})
+
+final_FA <- do.call(rbind, plyr::compact(c(scanone, cim))) 
+
+final_FA$lod <- ifelse(log10(final_FA$lod) <= -2, 0.01, final_FA$lod)
+p.final_FA <-
+final_FA %>% 
+  ggplot() +
+  geom_tile(color = "white", aes(x = factor(pos), y = trait, fill=lod)) +  scale_fill_gradient2(low=("white"), mid = "white", high=("magenta"), midpoint = 1, trans = "log", breaks = c(0.5, 3, 20)) +   
+  facet_grid(trait~chr, scales = "free") + 
+  labs(y = "", x="genetic position", title="Fatty acid major QTL") + 
+  theme_bw() +
+  theme(text = element_text(size=8)) + 
+  theme(axis.text.x=element_blank(), strip.text.y = element_blank(), plot.title = element_text(hjust = 0.5))   
+
+# flower etc. 
+scanone_2 <- 
+lapply(1:length(scanone_result), function(i) {
+  tmp <- scanone_result[[i]] %>% 
+    filter(chr == "A10" | chr == "C06")
+  if(nrow(tmp) > 0){
+    tmp
+  }
+})
+
+cim_2 <- 
+lapply(1:length(cim_result), function(i) { 
+  tmp <- cim_result[[i]] %>% 
+    filter(chr == "A10" | chr == "C06")
+    if(nrow(tmp) > 0){
+    tmp
+    }
+})
+
+final_flower_etc <- do.call(rbind, plyr::compact(c(scanone_2, cim_2))) 
+
+p.flower_etc <-
+final_flower_etc %>%  
+  filter(trait != "Myristic_acid") %>% 
+  ggplot() +
+  geom_tile(color = "white", aes(x = factor(pos), y = trait, fill=lod)) + scale_fill_gradient2(low=("green"), high=("magenta"), midpoint = 1) +
+  facet_grid(trait~chr, scales = "free") + 
+  labs(y = "", x="genetic position", title="flowering time and growth-related traits major QTL") + 
+  theme_bw() + 
+  theme(text = element_text(size=8)) + 
+  theme(axis.text.x=element_blank(), strip.text.y = element_blank(), plot.title = element_text(hjust = 0.5)) 
+
+library(cowplot)
+```
+
+```
+## Warning: package 'cowplot' was built under R version 3.2.5
+```
+
+```
+## Warning: `legend.margin` must be specified using `margin()`. For the old
+## behavior use legend.spacing
+```
+
+```
+## 
+## Attaching package: 'cowplot'
+```
+
+```
+## The following object is masked from 'package:ggplot2':
+## 
+##     ggsave
+```
+
+```r
+plot.all.paper <-plot_grid(
+  p.final_FA,
+  p.flower_etc,
+  ncol=1, nrow = 2,labels=c("a","b"), label_size = 10)  
+```
+
+```
+## Warning: `panel.margin` is deprecated. Please use `panel.spacing` property
+## instead
+```
+
+```r
+plot.all.paper 
+```
+
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+### scantwo & epistatic effect for linolenic acid 
+
+scantwo analysis on HPC https://github.com/MaloofLab/Li-eQTL-2018/tree/master/scripts/scantwo 
+
+```r
+# linolenic acid scantwo result use effectplot() in Q/qtl package 
+```
+
 ### plot eQTL result 
 
 ```r
@@ -682,9 +842,9 @@ eQTL %>%
 p.eQTL    
 ```
 
-![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
-# trans-eQTL hotspot 
+### trans-eQTL hotspot 
 
 ```r
 library(qtlhot)
@@ -714,7 +874,7 @@ summary(hots1) # for each genomic position
 # https://github.com/MaloofLab/Li-eQTL-2018/blob/master/scripts/trans_eQTL_hotspot_perm_transonly.R
 ```
 
-# plot out trans-eQTL result 
+### plot out trans-eQTL result 
 
 ```r
 load("../output/hotperm1.trans.Rdata")
@@ -725,7 +885,128 @@ plot(hots1, ylab="trans-eQTL counts")
 abline(h = 129)  
 ```
 
-![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+### analysis of the trans-eQTL loci for FA composition 
+
+while other poeple all find FAE to be the gene responsible for erucic acid content, I found them to be controlled by a trans-eQTL hotspot on A03. Now I want to see
+
+1. whether adding genotype info of A03 loci info can increase the R2 of erucic acid
+
+2. whether adding expression of the two FAE1 genes can increase the R2 of erucic acid
+
+using brms() package for this purpose
+
+https://github.com/leejimmy93/KIAT/blob/master/F2/scantwo_flipped.Rmd
+
+```r
+library(brms)
+load("../input/F2_geno_data_2_Ae_Ol_new.Rdata")
+
+ID <- c("chrC03_53442609", "chrA08_10120555", "chrA03_12781099")
+geno <- as.data.frame(t(F2_geno_data_2_Ae_Ol_new[rownames(F2_geno_data_2_Ae_Ol_new) %in% ID,])) 
+geno$id <- paste("Sample_F2_", rownames(geno), sep = "")
+
+# expression 
+cross.F2 <- read.cross("csvsr", genfile ="../input/LG.f2.madmapper.final_gen_revised_flipped_C05C08.csv", 
+                         phefile = "../input/vstMat.f2.batch.corrected_revised.csv",
+                         genotypes = c("AA", "AB", "BB"))   
+
+ID_gene <- c("BnaA08g11130D", "BnaC03g65980D")
+
+expression <- cross.F2$pheno[,colnames(cross.F2$pheno) %in% c(ID_gene, "id")] 
+
+# pheno 
+LG.f2.after.crossover <- read.cross("csvsr", genfile = "~/F2/data/QTL_analysis/LG.f2.madmapper.final_gen_revised_flipped.csv",
+                     phefile = "~/F2/data/QTL_analysis/F2.pheno.csv", 
+                     genotypes = c("AA", "AB", "BB")) 
+
+pheno <- 
+LG.f2.after.crossover$pheno %>% 
+  dplyr::select(ends_with("acid"), id)
+
+# combine 
+FAE1_data <- 
+geno %>% 
+  left_join(expression) %>%
+  left_join(pheno) 
+
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("-",NA,x)))
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("A",-1,x)))
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("B",1,x)))
+FAE1_data <- data.frame(sapply(FAE1_data, function(x) sub("H",0,x)))
+FAE1_data$BnaC03g65980D <- as.numeric(FAE1_data$BnaC03g65980D)
+FAE1_data$BnaA08g11130D <- as.numeric(FAE1_data$BnaA08g11130D)
+FAE1_data$chrA03_12781099 <- as.numeric(as.character(FAE1_data$chrA03_12781099))
+FAE1_data$chrA08_10120555 <- as.numeric(as.character(FAE1_data$chrA08_10120555))
+FAE1_data$chrC03_53442609 <- as.numeric(as.character(FAE1_data$chrC03_53442609))
+
+FAE1_data$Erucic_acid <- as.numeric(FAE1_data$Erucic_acid)
+
+# stats analysis 
+  # just the two loci, with interaction 
+  FAE1 <- brm(Erucic_acid ~ chrC03_53442609 * chrA08_10120555,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))  # mean of 0 and sd of 50
+
+  # add genotype from A03, pairwise interaction 
+  FAE1.2 <- brm(Erucic_acid ~ chrA03_12781099 + chrA08_10120555 + chrC03_53442609 + chrA03_12781099:chrA08_10120555 + chrA03_12781099:chrC03_53442609 + chrC03_53442609:chrA08_10120555,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))
+
+  # no interaction at all, add genotype from A03 
+  FAE1.2.2 <- brm(Erucic_acid ~ chrA03_12781099 + chrA08_10120555 + chrC03_53442609,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))
+
+  # just add interaction between A08 and C03
+  FAE1.2.3 <- brm(Erucic_acid ~ chrA03_12781099 + chrA08_10120555 + chrC03_53442609 + chrA08_10120555:chrC03_53442609,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))
+  
+  ### no interaction, just the two major QTL 
+  FAE0 <- brm(Erucic_acid ~ chrC03_53442609 + chrA08_10120555,
+            data = FAE1_data, 
+            prior = set_prior("normal(0,50)",class="b"))  # mean of 0 and sd of 10 
+
+# Erucic acid A03 is signficant with positive effect from Da-Ol-1 
+
+loo(FAE0, FAE1) 
+loo(FAE1.2, FAE1.2.2, FAE1.2.3) 
+
+### hypothesis testing 
+# A08 & C03, no interaction 
+summary(FAE0) 
+hypothesis(FAE0, "chrA08_10120555 < 0")
+hypothesis(FAE0, "chrC03_53442609 < 0")  
+
+# only A08 & C03
+summary(FAE1)
+hypothesis(FAE1, "chrA08_10120555 < 0")
+hypothesis(FAE1, "chrC03_53442609 < 0")  
+
+# add A03, pairwise interaction 
+summary(FAE1.2)
+hypothesis(FAE1.2, "chrA08_10120555 < 0") 
+hypothesis(FAE1.2, "chrC03_53442609 < 0") 
+hypothesis(FAE1.2, "chrA03_12781099 > 0")
+
+# add A03, no interaction  
+summary(FAE1.2.2) 
+hypothesis(FAE1.2.2, "chrA08_10120555 < 0")  
+hypothesis(FAE1.2.2, "chrC03_53442609 < 0") 
+hypothesis(FAE1.2.2, "chrA03_12781099 > 0")  ### allele from Da-Ol-1 increase Erucic acid level. 
+plot(hypothesis(FAE1.2.2, "chrA03_12781099 > 0"))   
+
+# add A03, and include interaction between A08 and C03
+summary(FAE1.2.3)
+hypothesis(FAE1.2.3, "chrA08_10120555 < 0") 
+hypothesis(FAE1.2.3, "chrC03_53442609 < 0") 
+hypothesis(FAE1.2.3, "chrA03_12781099 > 0")  ### allele from Da-Ol-1 increase Erucic acid level. 
+plot(hypothesis(FAE1.2.2, "chrA03_12781099 > 0")) 
+
+# A03 genotype is significant for Erucic acid, how about other FA? test oleic acid, did the same thing, and found the opposite effect for Oleic acid.   
+```
 
 ### integrate QTL and eQTL mapping result 
 
@@ -1160,7 +1441,7 @@ qtl_plot(input = rbind(data.frame(cim.qtl[["Erucic_acid"]], method = "Erucic_aci
          rug = TRUE)     
 ```
 
-![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 ```r
 growth_eQTL <- 
@@ -1174,8 +1455,8 @@ qtl_plot(input = rbind(data.frame(cim.qtl[["days_to_bolt"]], method = "days_to_b
          chrs = c("A10"), 
          # lod = cim.perm[[1]], 
          title = "", 
-         rug = TRUE)      
+         rug = TRUE)       
 ```
 
-![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
+![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
 

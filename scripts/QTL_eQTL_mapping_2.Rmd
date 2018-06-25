@@ -451,11 +451,127 @@ save(cis_eQTL, trans_eQTL, file = "../output/cis_trans_result_new_flipped_C05C08
 
 ### major QTL plot 
 ```{r}
+load("../input/QTL_result_all.Rdata")
+load("../input/bayesint.result.physical.Rdata")
 
+bayesint.result_scanone <- 
+bayesint.result %>% 
+  filter(model == "scanone")  
+
+scanone_result <- list()
+
+for (i in 1:nrow(bayesint.result_scanone)) {
+  trait <- bayesint.result_scanone$trait[i] 
+  chr1 <- bayesint.result_scanone$chr[i] 
+  tmp <- scanone.imp.all[[trait]] 
+  scanone_result[[i]] <- tmp %>% filter(chr == chr1) 
+}
+
+names(scanone_result) <- bayesint.result_scanone$trait
+
+bayesint.result_cim <- 
+bayesint.result %>% 
+  filter(model == "cim")  
+
+cim_result <- list()
+
+for (i in 1:nrow(bayesint.result_cim)) {
+  trait <- bayesint.result_cim$trait[i] 
+  chr1 <- bayesint.result_cim$chr[i] 
+  tmp <- cim.qtl.all[[trait]] 
+  cim_result[[i]] <- tmp %>% filter(chr == chr1) 
+}
+
+names(cim_result) <- bayesint.result_cim$trait
+
+# combine result and plot 
+# add model label 
+for(i in 1:length(scanone_result)){
+  scanone_result[[i]]$model <- rep("scanone", nrow(scanone_result[[i]]))
+  scanone_result[[i]]$trait <- rep(names(scanone_result)[i], nrow(scanone_result[[i]]))
+}
+
+for(i in 1:length(cim_result)){
+  cim_result[[i]]$model <- rep("cim", nrow(cim_result[[i]]))
+  cim_result[[i]]$trait <- rep(names(cim_result)[i], nrow(cim_result[[i]]))
+}
+
+scanone <- 
+lapply(1:length(scanone_result), function(i) {
+  tmp <- scanone_result[[i]] %>% 
+    filter(chr == "A08" | chr == "C03")
+  if(nrow(tmp) > 0){
+    tmp
+  }
+})
+
+cim <- 
+lapply(1:length(cim_result), function(i) {
+  tmp <- cim_result[[i]] %>% 
+    filter(chr == "A08" | chr == "C03")
+    if(nrow(tmp) > 0){
+    tmp
+    }
+})
+
+final_FA <- do.call(rbind, plyr::compact(c(scanone, cim))) 
+
+final_FA$lod <- ifelse(log10(final_FA$lod) <= -2, 0.01, final_FA$lod)
+p.final_FA <-
+final_FA %>% 
+  ggplot() +
+  geom_tile(color = "white", aes(x = factor(pos), y = trait, fill=lod)) +  scale_fill_gradient2(low=("white"), mid = "white", high=("magenta"), midpoint = 1, trans = "log", breaks = c(0.5, 3, 20)) +   
+  facet_grid(trait~chr, scales = "free") + 
+  labs(y = "", x="genetic position", title="Fatty acid major QTL") + 
+  theme_bw() +
+  theme(text = element_text(size=8)) + 
+  theme(axis.text.x=element_blank(), strip.text.y = element_blank(), plot.title = element_text(hjust = 0.5))   
+
+# flower etc. 
+scanone_2 <- 
+lapply(1:length(scanone_result), function(i) {
+  tmp <- scanone_result[[i]] %>% 
+    filter(chr == "A10" | chr == "C06")
+  if(nrow(tmp) > 0){
+    tmp
+  }
+})
+
+cim_2 <- 
+lapply(1:length(cim_result), function(i) { 
+  tmp <- cim_result[[i]] %>% 
+    filter(chr == "A10" | chr == "C06")
+    if(nrow(tmp) > 0){
+    tmp
+    }
+})
+
+final_flower_etc <- do.call(rbind, plyr::compact(c(scanone_2, cim_2))) 
+
+p.flower_etc <-
+final_flower_etc %>%  
+  filter(trait != "Myristic_acid") %>% 
+  ggplot() +
+  geom_tile(color = "white", aes(x = factor(pos), y = trait, fill=lod)) + scale_fill_gradient2(low=("green"), high=("magenta"), midpoint = 1) +
+  facet_grid(trait~chr, scales = "free") + 
+  labs(y = "", x="genetic position", title="flowering time and growth-related traits major QTL") + 
+  theme_bw() + 
+  theme(text = element_text(size=8)) + 
+  theme(axis.text.x=element_blank(), strip.text.y = element_blank(), plot.title = element_text(hjust = 0.5)) 
+
+library(cowplot)
+
+plot.all.paper <-plot_grid(
+  p.final_FA,
+  p.flower_etc,
+  ncol=1, nrow = 2,labels=c("a","b"), label_size = 10)  
+
+plot.all.paper 
 ```
 
 ### scantwo & epistatic effect for linolenic acid 
-```{r}
+```{r} 
+# scantwo analysis on HPC 
 
 ```
 

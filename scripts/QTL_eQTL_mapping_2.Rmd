@@ -617,7 +617,7 @@ eQTL %>%
 p.eQTL    
 ```
 
-# trans-eQTL hotspot 
+### trans-eQTL hotspot 
 ```{r, eval=FALSE}
 library(qtlhot)
 load("../input/cis_trans_result_new_flipped.Rdata") 
@@ -666,6 +666,7 @@ while other poeple all find FAE to be the gene responsible for erucic acid conte
 
 using brms() package for this purpose
 
+https://github.com/leejimmy93/KIAT/blob/master/F2/scantwo_flipped.Rmd
 ```{r}
 library(brms)
 load("../input/F2_geno_data_2_Ae_Ol_new.Rdata")

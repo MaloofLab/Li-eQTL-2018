@@ -2,7 +2,21 @@
 title: "growth-model"
 author: "Ruijuan Li"
 date: "5/7/2018"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
+steps took for modeling 
 
+1) load librarys: brms etc. 
+
+2) format the data, 4 time points for 166 individuals, plot by individual ID, look at the raw data 
+
+3) set up gompertz fomula using bf(), do a summary on the data, and using summary stats as the starting prior for model fit. normal distribution 
+
+4) varying Hmax, k, and I, fixed Hmin for individuals, random effect, sigma, cauchy... 
+
+5) plot fit curve, observed VS. expected, growth model curve, SSR, CV: K-fold CV Data are randomly partitioned into K subsets of equal size. Then the model is refit 10 times(default), each time leaving out one of the 10 subsets; AIC: bayesian criteria for assess model fit  
+
+https://github.com/s065039/414_growth_model/

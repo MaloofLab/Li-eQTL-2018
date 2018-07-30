@@ -386,7 +386,8 @@ bayesint.list <- apply(sig.chrs,1,function(hit) { # for every row("trait, chr, c
     result <- bayesint(scanone_eQTL.F2[c("chr","pos",hit["trait"])],  
                      chr=hit["chr"], 
                      lodcolumn = 1, 
-                     expandtomarkers = TRUE 
+                     expandtomarkers = TRUE, 
+                     prob = 0.999 # expand the marker interval for cis-eQTL determination
   )
   colnames(result)[3] <- "LOD" 
   result
@@ -409,7 +410,7 @@ as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # combine list into tibble
     dplyr::summarize(start=min(Mbp, na.rm = T),end=max(Mbp, na.rm = T), pos=median(pos, na.rm = T), min_eQTL_LOD=min(LOD),max_eQTL_LOD=max(LOD), genetic_start=min(pos, na.rm = T), genetic_end=max(pos, na.rm = T)) %>% 
   #for the high QTL peaks the interval width is 0.  That is overly precise and need to widen those.
   # mutate(start=ifelse(start==end, start-20000,start), end=ifelse(start==end,end+20000,end)) 
-  mutate(start_modified=ifelse(start-250000>0, start-500000, 0), end_modified=end+250000) 
+  mutate(start_modified=ifelse(start-250000>0, start-250000, 0), end_modified=end+250000) 
 
 bayesint.result %>% dim() # 26244    11
 

@@ -225,3 +225,38 @@ qtl_plot <- function(input,              # data frame input from scanone
   
   print(plot)
 } 
+
+coef_extract <- function(model_summary, ID){
+  coef_Hmax <- model_summary[grep("r_ID__Hmax", model_summary$X) ,"mean"]
+  coef_k <- model_summary[grep("r_ID__k", model_summary$X) ,"mean"] 
+  coef_I <- model_summary[grep("r_ID__I", model_summary$X) ,"mean"] 
+  intercept_Hmax <- model_summary[model_summary$X == "b_Hmax_Intercept", "mean"]
+  intercept_k <- model_summary[model_summary$X == "b_k_Intercept", "mean"]
+  intercept_I <- model_summary[model_summary$X == "b_I_Intercept", "mean"]
+  
+  growth_model_trait <- data.frame(line_ID = ID,
+                                   Hmax = coef_Hmax + intercept_Hmax,
+                                   k = coef_k + intercept_k,
+                                   I = coef_I + intercept_I
+  )
+  return(growth_model_trait)
+}
+
+coef_extract_width <- function(model_summary, ID){
+  
+  model_summary <- width
+  
+  coef_Hmax <- model_summary[grep("r_ID__Hmax", model_summary$X) ,"mean"]
+  coef_k <- model_summary[grep("r_ID__k", model_summary$X) ,"mean"] 
+  coef_delta <- model_summary[grep("r_ID__delta", model_summary$X) ,"mean"] 
+  intercept_Hmax <- model_summary[model_summary$X == "b_Hmax_Intercept", "mean"]
+  intercept_k <- model_summary[model_summary$X == "b_k_Intercept", "mean"]
+  intercept_delta <- model_summary[model_summary$X == "b_delta_Intercept", "mean"]
+  
+  growth_model_trait <- data.frame(line_ID = ID,
+                                   Hmax = coef_Hmax + intercept_Hmax,
+                                   k = coef_k + intercept_k,
+                                   delta = coef_delta + intercept_delta
+  )
+  return(growth_model_trait)
+} 

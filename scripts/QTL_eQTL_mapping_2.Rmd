@@ -614,7 +614,7 @@ eQTL %>%
   theme(text = element_text(size=8)) + 
   scale_color_manual(values=c("red", "royalblue"))  
 
-p.eQTL    
+p.eQTL     
 ```
 
 ### trans-eQTL hotspot 

@@ -261,6 +261,46 @@ length(vcf.Ae.Ol.intersect.2) # 63981 same SNP positions between freebayes & GAT
 
 ### circus plot  
 ```{r}
+library(circlize)
 
+setEPS() 
+postscript(file = "../output/density.eps", width=5.7, height=5.7)
+par(mai = c(0.4, 0.4, 0.4, 0.4), ps = 8, cex = 1, cex.main = 1, cex.axis = 0.8, tcl = -0.3) 
+
+# add SNP data for the marker, cytoband format 
+F2_map <- read.csv("../input/LG.f2.madmapper.final.flipped_gen_C05C08.csv_gen.csv")
+F2_map$chrom <- F2_map$X
+F2_map$start <- gsub("(chr)(A|C)(01|02|03|04|05|06|07|08|09|10)(_)([[:print:]]+)", "\\5", F2_map$id) %>% as.numeric()
+
+F2_map_cytoband <- data.frame(V1 = F2_map$chrom, 
+                              V2 = F2_map$start,
+                              V3 = F2_map$start + 100000, 
+                              V4 = F2_map$id, 
+                              V5 = c("stalk"))
+
+circos.initializeWithIdeogram(F2_map_cytoband)    
+
+# data 
+# add SNP data 
+vcf.Ae.Ol.intersect.df.2.sorted <-  read.csv("../input/vcf.Ae.Ol.intersect.df.2.csv")
+vcf.Ae.Ol.intersect.df.2.sorted$CHROM <- gsub("chr","",vcf.Ae.Ol.intersect.df.2.sorted$CHROM)
+dim(vcf.Ae.Ol.intersect.df.2.sorted)  #  62958     9 
+
+circos.trackHist(factors = vcf.Ae.Ol.intersect.df.2.sorted$CHROM, x = vcf.Ae.Ol.intersect.df.2.sorted$POS, bin.size = 1000000, col = "blue", border = NA, bg.col = "#EFEFEF")  
+
+gff.mRNA <- read.table("../input/gff.mRNA")
+colnames(gff.mRNA) <- c("chrom", "start", "end", "gene_ID")
+gff.mRNA$subgenome <- gsub("(chr)(A|C)(01|02|03|04|05|06|07|08|09|10)", "\\2", gff.mRNA$chrom)
+
+gff.mRNA.main <- gff.mRNA[grep("random", gff.mRNA$chrom, invert = T),]
+gff.mRNA.main$chrom <- gsub("(chr)(A|C)(01|02|03|04|05|06|07|08|09|10)", "\\3", gff.mRNA.main$chrom)
+dim(gff.mRNA.main)  
+
+gff.mRNA.main$chrom <- paste(gff.mRNA.main$subgenome, gff.mRNA.main$chrom, sep = "")
+
+circos.trackHist(factors = gff.mRNA.main$chrom, x = gff.mRNA.main$start, bin.size = 1000000, 
+    col = "orange", border = NA, bg.col = "#EFEFEF") 
+
+dev.off()     
 ```
 

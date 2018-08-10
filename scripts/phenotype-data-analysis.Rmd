@@ -484,6 +484,6 @@ pheatmap(as.matrix(trait_cor),
      border_color=NA,
      fontsize_col = 8, 
      legend = T 
-)  
+)   
 ```
 

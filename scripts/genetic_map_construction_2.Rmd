@@ -131,13 +131,21 @@ map_geno$genetic_pos <- map_geno$X.1
 map_geno$physical_chr <- gsub("(chr)([[:print:]]+)(_)([[:print:]]+)", "\\2", map_geno$id)
 map_geno$genetic_chr <- factor(map_geno$X, levels = c("C09", "C08", "C07", "C06", "C05", "C04", "C03", "C02", "C01", "A10", "A09", "A08", "A07", "A06", "A05", "A04", "A03", "A02", "A01"))
 map_geno$physical_pos <- gsub("(chr)([[:print:]]+)(_)([[:print:]]+)", "\\4", map_geno$id)
- 
+
+map_geno <- 
+map_geno %>% 
+  group_by(genetic_chr) %>% 
+  mutate(cor_score = round(cor(genetic_pos, as.numeric(physical_pos)), digit = 2))
+
+map_geno$note <- paste(map_geno$genetic_chr, map_geno$cor_score, sep = "_")
+
+# png(file = "../output/P.genetic_vs_physical.eps", width=6.8, height=9.2) 
 par(mfrow=c(5,4), mai = c(0.4, 0.4, 0.4, 0.4), ps = 8, cex = 1, cex.main = 1, cex.axis = 0.8, tcl = -0.3)  
 
-for (i in unique(map_geno$genetic_chr)){
-  plot(map_geno[map_geno$genetic_chr == i,]$genetic_pos, map_geno[map_geno$genetic_chr == i,]$physical_pos, 
-       xlab = "genetic pos", ylab = "physical pos", main = i, type = "p", mgp=c(.1,.5,.0)) 
-}
+for (i in unique(map_geno$note)){
+  plot(map_geno[map_geno$note == i,]$genetic_pos, map_geno[map_geno$note == i,]$physical_pos, 
+       xlab = "", ylab = "", main = i, type = "p", mgp=c(.1,.5,.0)) 
+} 
 
 # genetic map plot 
 par(mfrow=c(1,1))
@@ -148,3 +156,6 @@ map_summary <- summaryMap(LG.f2.madmapper.after.crossover)
 map_summary 
 write.csv(map_summary, file = "../output/map_summary.csv")   
 ``` 
+
+
+

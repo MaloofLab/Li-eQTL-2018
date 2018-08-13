@@ -154,7 +154,7 @@ plot.map(LG.f2.madmapper.after.crossover, alternate.chrid = T, main = "") # gene
 # summary map 
 map_summary <- summaryMap(LG.f2.madmapper.after.crossover) 
 map_summary 
-write.csv(map_summary, file = "../output/map_summary.csv")   
+write.csv(map_summary, file = "../output/map_summary.csv")    
 ``` 
 
 

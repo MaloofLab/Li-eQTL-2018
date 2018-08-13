@@ -441,7 +441,7 @@ bayesint.result.2 %>%
          (gene_start >= eQTL_start & gene_end <= eQTL_end) |
          (gene_start < eQTL_end & gene_end > eQTL_end)) 
 
-dim(cis_eQTL) # 11587    15
+dim(cis_eQTL) # 11031    15
 
 trans_eQTL <- 
 bayesint.result.2 %>% 
@@ -582,6 +582,9 @@ scantwo analysis on HPC https://github.com/MaloofLab/Li-eQTL-2018/tree/master/sc
 setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/") 
 load("../output/cis_trans_result_new_flipped_C05C08.Rdata") 
 
+dim(cis_eQTL)
+dim(trans_eQTL) 
+
 # output plot 
 cis_eQTL$index <- paste(cis_eQTL$eQTL_chr, cis_eQTL$eQTL_start, cis_eQTL$eQTL_end, sep = "_")
 trans_eQTL$index <- paste(trans_eQTL$eQTL_chr, trans_eQTL$eQTL_start, trans_eQTL$eQTL_end, sep = "_")
@@ -614,7 +617,9 @@ eQTL %>%
   theme(text = element_text(size=8)) + 
   scale_color_manual(values=c("red", "royalblue"))  
 
-p.eQTL     
+p.eQTL 
+
+ggsave(p.eQTL, filename = "../output/p_eQTL.png", height = 5, width = 7.4) 
 ```
 
 ### trans-eQTL hotspot 

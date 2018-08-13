@@ -117,3 +117,19 @@ pl.heatmap1 <- ggplot(data = gt_gt.tissue.melt) +
 pl.heatmap1    
 ```
 
+### overlaps between genes with eQTL and genes differentially expressed between Da-Ae and Da-Ol-1 
+```{r}
+load("../output/cis_trans_result_new_flipped_C05C08.Rdata") 
+eQTL_gene <- c(cis_eQTL$gene_ID, trans_eQTL$gene_ID) %>% unique() 
+intersect(eQTL_gene, rownames(DEgene.new.gt)) %>% length() 
+nrow(DEgene.new.gt) # 15098 
+length(eQTL_gene) # 22693 
+
+data <- matrix(c(9436, 5662, 13230, 42952), nrow = 2, ncol = 2)
+colnames(data) <- c("DE", "no_DE")
+rownames(data) <- c("eQTL", "no_eQTL")
+data
+
+fisher.test(data) 
+```
+

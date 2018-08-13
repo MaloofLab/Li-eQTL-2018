@@ -10,7 +10,7 @@ output:
 ### load libraries 
 
 ```r
-library(tidyverse) 
+library(tidyverse)  
 ```
 
 ```
@@ -557,7 +557,7 @@ threshold.95 # 4.18
 eQTL_sign <- 
 sapply(colnames(scanone_eQTL.F2), function(gene) {
   sum(scanone_eQTL.F2[,gene] > threshold.95) > 0 
-}) 
+})  
 
 sum(eQTL_sign) # 22,695 genes with eQTL 
 scanone_eQTL.F2 <- scanone_eQTL.F2[,eQTL_sign]  
@@ -578,7 +578,8 @@ bayesint.list <- apply(sig.chrs,1,function(hit) { # for every row("trait, chr, c
     result <- bayesint(scanone_eQTL.F2[c("chr","pos",hit["trait"])],  
                      chr=hit["chr"], 
                      lodcolumn = 1, 
-                     expandtomarkers = TRUE 
+                     expandtomarkers = TRUE, 
+                     prob = 0.999 # expand the marker interval for cis-eQTL determination
   )
   colnames(result)[3] <- "LOD" 
   result
@@ -601,7 +602,7 @@ as.tibble(bind_rows(bayesint.list,.id="trait")) %>% # combine list into tibble
     dplyr::summarize(start=min(Mbp, na.rm = T),end=max(Mbp, na.rm = T), pos=median(pos, na.rm = T), min_eQTL_LOD=min(LOD),max_eQTL_LOD=max(LOD), genetic_start=min(pos, na.rm = T), genetic_end=max(pos, na.rm = T)) %>% 
   #for the high QTL peaks the interval width is 0.  That is overly precise and need to widen those.
   # mutate(start=ifelse(start==end, start-20000,start), end=ifelse(start==end,end+20000,end)) 
-  mutate(start_modified=ifelse(start-1000000>0, start-1000000, 0), end_modified=end+1000000) 
+  mutate(start_modified=ifelse(start-250000>0, start-250000, 0), end_modified=end+250000) 
 
 bayesint.result %>% dim() # 26244    11
 
@@ -632,7 +633,7 @@ bayesint.result.2 %>%
          (gene_start >= eQTL_start & gene_end <= eQTL_end) |
          (gene_start < eQTL_end & gene_end > eQTL_end)) 
 
-dim(cis_eQTL) # 11587    15
+dim(cis_eQTL) # 11031    15
 
 trans_eQTL <- 
 bayesint.result.2 %>% 
@@ -807,6 +808,22 @@ scantwo analysis on HPC https://github.com/MaloofLab/Li-eQTL-2018/tree/master/sc
 setwd("~/Desktop/F2_paper/submission/Li-eQTL-2018/scripts/") 
 load("../output/cis_trans_result_new_flipped_C05C08.Rdata") 
 
+dim(cis_eQTL)
+```
+
+```
+## [1] 11031    15
+```
+
+```r
+dim(trans_eQTL) 
+```
+
+```
+## [1] 15213    15
+```
+
+```r
 # output plot 
 cis_eQTL$index <- paste(cis_eQTL$eQTL_chr, cis_eQTL$eQTL_start, cis_eQTL$eQTL_end, sep = "_")
 trans_eQTL$index <- paste(trans_eQTL$eQTL_chr, trans_eQTL$eQTL_start, trans_eQTL$eQTL_end, sep = "_")
@@ -839,10 +856,14 @@ eQTL %>%
   theme(text = element_text(size=8)) + 
   scale_color_manual(values=c("red", "royalblue"))  
 
-p.eQTL    
+p.eQTL 
 ```
 
 ![](QTL_eQTL_mapping_2_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+```r
+ggsave(p.eQTL, filename = "../output/p_eQTL.png", height = 5, width = 7.4) 
+```
 
 ### trans-eQTL hotspot 
 
@@ -1018,7 +1039,7 @@ cis_eQTL %>% dim() #  11587    15
 ```
 
 ```
-## [1] 11587    15
+## [1] 11031    15
 ```
 
 ```r
@@ -1026,7 +1047,7 @@ trans_eQTL %>% dim() # 14657    15
 ```
 
 ```
-## [1] 14657    15
+## [1] 15213    15
 ```
 
 ```r
@@ -1064,7 +1085,7 @@ trans_candidate %>% dim()  # 4022    4
 ```
 
 ```
-## [1] 4022    4
+## [1] 4001    4
 ```
 
 ```r
@@ -1101,7 +1122,7 @@ trans_candidate.final %>% dim() # 4022 16
 ```
 
 ```
-## [1] 4022   16
+## [1] 4001   16
 ```
 
 ```r
@@ -1109,7 +1130,7 @@ trans_candidate.final$gene_ID %>% unique() %>% length() # 1972
 ```
 
 ```
-## [1] 1972
+## [1] 1968
 ```
 
 ```r

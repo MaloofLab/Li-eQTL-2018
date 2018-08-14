@@ -5,7 +5,7 @@ This repository contains script, input, and output data for Li et al. 2018 on Br
 
 The main scripts are the .MD and .RMD files in the scripts folder. 
 
-* gene-expression-analysis.md starts from RNAseq counts, TMM normalizes and fits glm model in edgeR for gene expression analysis. GO enrichment result of the differentially expressed genes is displayed in the file. 
+* [gene-expression-analysis.md](https://github.com/MaloofLab/Li-eQTL-2018/blob/master/scripts/gene-expression-analysis.md) starts from RNAseq counts, TMM normalizes and fits glm model in edgeR for gene expression analysis. GO enrichment result of the differentially expressed genes is displayed in the file. 
 
 * SNP-calling.Rmd shows the SNP calling pipeline using Freebayes and GATK, SNP filtering of the output from both Feebayes and GATK, as well as how the two SNP datasets were combined. SNP annotation pipeline using snpEff is also included in this script. 
 

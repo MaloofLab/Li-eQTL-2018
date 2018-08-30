@@ -151,7 +151,7 @@ p.mapping
 ggsave(p.mapping, filename="~/B_subgenome_check/output/figure/mapping.Ae.png", height=8, width=11) 
 ```
 
-# depth result 
+### depth result 
 ```{r}
 path_ABC <- "~/B_subgenome_check/output/mapping_result/ABC/depth/Ae/"
 files <- list.files(path=path_ABC)

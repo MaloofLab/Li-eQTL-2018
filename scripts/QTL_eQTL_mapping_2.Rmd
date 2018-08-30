@@ -146,6 +146,9 @@ bayesint.result.cim %>%
 
 bayesint.result %>% dim() # 35 16 
 
+# mark QTL that were detected from both methods 
+note <- ifelse((rowSums(is.na(bayesint.result)) == 0), "*", "")
+
 for (i in 1:nrow(bayesint.result)){
   if(is.na(bayesint.result[i, "start.x"])){
     bayesint.result[i, c(3:9)] <- bayesint.result[i, c(10:16)]
@@ -260,7 +263,8 @@ for (i in 1:nrow(bayesint.result.paper)){
 bayesint.result.paper <- bayesint.result.paper[,1:7] 
 colnames(bayesint.result.paper) <- gsub("\\.x$", "", colnames(bayesint.result.paper)) 
 
-bayesint.result.paper %>% dim() # 35 7 
+bayesint.result.paper %>% dim() # 35 7  
+bayesint.result.paper$model <- paste(bayesint.result.paper$model, note, sep = "")
 
 write.csv(bayesint.result.paper, file = "../output/bayesint.result.paper.csv") 
 

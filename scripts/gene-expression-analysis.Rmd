@@ -121,7 +121,7 @@ pl.heatmap1
 ```{r}
 load("../output/cis_trans_result_new_flipped_C05C08.Rdata") 
 eQTL_gene <- c(cis_eQTL$gene_ID, trans_eQTL$gene_ID) %>% unique() 
-intersect(eQTL_gene, rownames(DEgene.new.gt)) %>% length() 
+intersect(eQTL_gene, rownames(DEgene.new.gt)) %>% length() # 9436 
 nrow(DEgene.new.gt) # 15098 
 length(eQTL_gene) # 22693 
 
@@ -130,6 +130,22 @@ colnames(data) <- c("DE", "no_DE")
 rownames(data) <- c("eQTL", "no_eQTL")
 data
 
-fisher.test(data) 
+fisher.test(data)  
+
+# late silique only 
+load("~/Desktop/Brassica_project/KIAT_RNA_seq/output/parent/DEgene.pairwise.gt.Rdata")
+DEgene.late.silique
+nrow(DEgene.late.silique) # 7413 
+intersect(eQTL_gene, rownames(DEgene.late.silique)) %>% length() # 5650 
+unique(c(eQTL_gene, rownames(DEgene.late.silique))) %>% length() 
+
+# genes with detectable expression in F2: 56180  
+56180-  24456
+data2 <- matrix(c(5650, 1763, 17043, 31724), nrow = 2, ncol = 2)
+colnames(data2) <- c("DE", "no_DE")
+rownames(data2) <- c("eQTL", "no_eQTL")
+data2
+
+fisher.test(data2)  
 ```
 

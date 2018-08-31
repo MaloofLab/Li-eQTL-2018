@@ -199,6 +199,41 @@ for(i in names(ABC_depth_diff_window_average)){
 dev.off() 
 ```
 
+### unique mapping rate to B-subgenome VS A&C 
+```{r}
+ABC_mapping <- read.table("~/Desktop/F2_paper/submission/Li-eQTL-2018/input/Stats.tab", header = T)
+
+ABC_mapping <- 
+ABC_mapping %>% 
+  mutate(Sample = gsub("Unique.sorted.bam_", "", Sample)) %>% 
+  mutate(Sample = gsub(".bam.stats", "", Sample)) %>% 
+  mutate(lib_ID = gsub("(All1_Gae_3|All1_Gae_2|2|6)([[:print:]]+)", "\\1", Sample)) %>% 
+  mutate(chr = gsub("(All1_Gae_3|All1_Gae_2|2|6)(_)([[:print:]]+)", "\\3", Sample)) %>% 
+  dplyr::select(lib_ID, chr, Number_Unique_Mapped) 
+
+p.ABC_mapping <- 
+ABC_mapping[grep("random", ABC_mapping$chr, invert = T),] %>% 
+  group_by(lib_ID) %>% 
+  mutate(Total = sum(Number_Unique_Mapped)) %>% 
+  mutate(Pct_uniq = Number_Unique_Mapped/Total) %>%
+  mutate(chr = gsub("chr", "", chr)) %>% 
+  ggplot() + 
+  geom_col(aes(x = chr, y = Pct_uniq, fill = lib_ID)) + 
+  facet_wrap(~lib_ID, nrow = 2, ncol = 2) 
+
+ggsave(p.ABC_mapping, filename = "~/Desktop/F2_paper/submission/Li-eQTL-2018/output/p.ABC_mapping.png", width = 14, height = 3)  
+
+ABC_mapping %>% 
+  group_by(lib_ID) %>% 
+  mutate(Total = sum(Number_Unique_Mapped)) %>% 
+  mutate(Pct_uniq = Number_Unique_Mapped/Total) %>%
+  mutate(sub = gsub("(chr)([[:print:]]+)", "\\1", chr)) %>% 
+  mutate(sub = ifelse(sub == "chr", "AC", "B")) %>% 
+  filter(sub == "B") %>% 
+  group_by(lib_ID) %>% 
+  summarise(B_sub_mapping = sum(Pct_uniq))
+  
+```
 
 
 

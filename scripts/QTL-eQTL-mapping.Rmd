@@ -12,6 +12,7 @@ library(qtl)
 library(snowfall) 
 library(ggrepel) 
 library(Biostrings)   
+library(edgeR)
 ```
 
 input data are deposited in box folder https://ucdavis.app.box.com/folder/49886630432 input folder; output data are in https://ucdavis.app.box.com/folder/49886630432 input folder
@@ -141,5 +142,13 @@ lod.thrs
 
 save(cross.F2, scanone_eQTL.F2, permtest.F2, lod.thrs, file = "scanone-eqtl_F2_flipped_C05C08.RData")  
 ```
+
+
+
+
+
+
+
+
 
 

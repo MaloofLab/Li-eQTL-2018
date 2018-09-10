@@ -6,6 +6,15 @@ output:
   html_document: 
     keep_md: yes
 ---
+### load libs
+```{r}
+library(edgeR)
+library(ggplot2)
+library("DESeq2") 
+library(lme4) 
+library(lmerTest) 
+library(reshape2)
+```
 
 ### read in data 
 ```{r} 
@@ -28,9 +37,6 @@ colnames(parent.read.count.one) <- new_sample_ID
 
 ### sample description & filtering 
 ```{r} 
-library(edgeR)
-library(ggplot2)
-
 parent.read.count.one <- parent.read.count.one[,colSums(parent.read.count.one) > 1000000]  
 parent.read.count.one.sample<-data.frame(file=colnames(parent.read.count.one),
                              batch=factor(gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\5",colnames(parent.read.count.one))),  
@@ -41,6 +47,15 @@ parent.read.count.one.sample<-data.frame(file=colnames(parent.read.count.one),
 
 # filter based on read count 
 parent.read.count.one.small <- parent.read.count.one[rowSums(parent.read.count.one > 10) >= 3,]
+```
+
+### vst transformation, used later for heritability calculation 
+```{r}
+dds.parent <- DESeqDataSetFromMatrix(countData = round(parent.read.count.one.small), colData = parent.read.count.one.sample, design = ~ batch + genotype*stage)
+
+vsd.parent <- varianceStabilizingTransformation(dds.parent)
+vstMat.parent <- assay(vsd.parent)
+colnames(vstMat.parent) <- colnames(parent.read.count.one) 
 ```
 
 ### normalize & clustering  
@@ -148,4 +163,87 @@ data2
 
 fisher.test(data2)  
 ```
+
+### heritability calculation for all genes 
+
+the reviwer challenged our experiment design, since our population is F2 population, which is impossible to have replicates, so the gene expression quantification could be inaccurate (envrionmental variation was not taken into consideration). To check for this problem, we decided to calculate the heritability of genes. The approach I will be using is very similar to what I have done for the phenotypic traits, but this will be done for all the genes. 
+
+```{r}
+# 1) get late silique gene quantification files for parents, vst transform the data, and calculate VE 
+vstMat.parent %>% dim() # 60975    27 
+
+# 2) F2 vst transformed data 
+vstMat.f2.batch.corrected <- read.csv("../output/vstMat.f2.batch.corrected_revised.csv")
+dim(vstMat.f2.batch.corrected) # 56180   167 
+
+# 3) calculate VE using biological replicates of parent data  
+vstMat.parent.late.silique <- 
+vstMat.parent[rownames(vstMat.parent) %in% vstMat.f2.batch.corrected$id,] %>% 
+  as.data.frame() %>% 
+  dplyr::select(contains("late")) 
+
+vstMat.parent.late.silique$PHENOTYPE <- rownames(vstMat.parent.late.silique)
+
+vstMat.parent.late.silique <- 
+vstMat.parent.late.silique %>%
+  gather(contains("Da"), key = "variable", value = "contains\\(\"Da\"\\)") %>% 
+  mutate(genotype = gsub("(Da-Ol-1|Da-Ae)(_)(late-silique)(_)(1|2|3)", "\\1", variable), 
+         rep_ID = gsub("(Da-Ol-1|Da-Ae)(_)(late-silique)(_)(1|2|3)", "\\5", variable))  
+
+colnames(vstMat.parent.late.silique)[3] <- "value"
+
+final_parent <- 
+vstMat.parent.late.silique %>% 
+  dplyr::select(genotype, rep_ID, PHENOTYPE, value) 
+
+VarE <- 
+sapply(unique(final_parent$PHENOTYPE), function(i) {
+  print(final_parent[final_parent$PHENOTYPE == i,] %>% rownames() %>% tail(1))
+  
+  test <- final_parent %>% 
+  filter(PHENOTYPE == i) 
+  
+  lme <- lmer(as.numeric(value) ~ (1|genotype),data=test)
+  var <- as.data.frame(VarCorr(lme)) 
+  var$vcov[2]
+})
+
+VarE <- data.frame(row.names = unique(final_parent$PHENOTYPE),
+                   VarE = VarE) 
+dim(VarE) # 51697     1 
+
+geneID <- vstMat.f2.batch.corrected[vstMat.f2.batch.corrected$id %in% rownames(vstMat.parent),]$id
+
+phefile.all <- 
+vstMat.f2.batch.corrected[vstMat.f2.batch.corrected$id %in% rownames(vstMat.parent),] %>% 
+  dplyr::select(-id) %>% 
+  t() %>% 
+  as.data.frame() 
+
+colnames(phefile.all) <- geneID
+phefile.all[1:10, 1:10] 
+
+VarP <- 
+sapply(colnames(phefile.all), function(i) var(phefile.all[[i]], na.rm = T)) %>% 
+  as.data.frame()
+
+colnames(VarP) <- "VarP" 
+dim(VarP) # 51697     1
+
+heritability <- 
+merge(VarE, VarP, by = 0) %>% 
+  mutate(heritability = (VarP - VarE)/VarP) %>% 
+  arrange(desc(heritability)) 
+
+heritability$heritability <- round(heritability$heritability, digits = 2)
+
+hist(heritability$heritability, breaks = 100) 
+min(heritability$heritability) 
+
+sum(heritability$heritability < -50)
+
+# finish this tomorrow 
+# heritability < 0 should be == 0, and look for heritability for genes with eQTL and w/o eQTL 
+```
+
 

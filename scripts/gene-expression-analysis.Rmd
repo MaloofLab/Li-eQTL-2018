@@ -14,6 +14,7 @@ library("DESeq2")
 library(lme4) 
 library(lmerTest) 
 library(reshape2)
+library(tidyverse)
 ```
 
 ### read in data 
@@ -149,7 +150,6 @@ fisher.test(data)
 
 # late silique only 
 load("~/Desktop/Brassica_project/KIAT_RNA_seq/output/parent/DEgene.pairwise.gt.Rdata")
-DEgene.late.silique
 nrow(DEgene.late.silique) # 7413 
 intersect(eQTL_gene, rownames(DEgene.late.silique)) %>% length() # 5650 
 unique(c(eQTL_gene, rownames(DEgene.late.silique))) %>% length() 
@@ -159,7 +159,7 @@ unique(c(eQTL_gene, rownames(DEgene.late.silique))) %>% length()
 data2 <- matrix(c(5650, 1763, 17043, 31724), nrow = 2, ncol = 2)
 colnames(data2) <- c("DE", "no_DE")
 rownames(data2) <- c("eQTL", "no_eQTL")
-data2
+data2 
 
 fisher.test(data2)  
 ```
@@ -168,7 +168,7 @@ fisher.test(data2)
 
 the reviwer challenged our experiment design, since our population is F2 population, which is impossible to have replicates, so the gene expression quantification could be inaccurate (envrionmental variation was not taken into consideration). To check for this problem, we decided to calculate the heritability of genes. The approach I will be using is very similar to what I have done for the phenotypic traits, but this will be done for all the genes. 
 
-```{r}
+```{r, eval=FALSE}
 # 1) get late silique gene quantification files for parents, vst transform the data, and calculate VE 
 vstMat.parent %>% dim() # 60975    27 
 
@@ -236,12 +236,12 @@ merge(VarE, VarP, by = 0) %>%
   arrange(desc(heritability)) 
 
 heritability$heritability <- round(heritability$heritability, digits = 2)
+# save(heritability, file = "../output/heritability.Rdata")
+heritability$heritability <- ifelse(heritability$heritability < 0, 0, heritability$heritability) # heritability < 0 should be == 0 
+```
 
-hist(heritability$heritability, breaks = 100) 
-min(heritability$heritability) 
-sum(heritability$heritability < -50)
-
-heritability$heritability <- ifelse(heritability$heritability < 0, 0, heritability$heritability) # heritability < 0 should be == 0
+```{r}
+load("../output/heritability.Rdata")
 
 # look for heritability for genes with eQTL and w/o eQTL  
 eQTL_gene %>% length() # 22693 
@@ -254,7 +254,8 @@ heritability %>%
   geom_histogram(aes(x = heritability), binwidth = 0.05) + 
   facet_wrap(~eQTL, nrow = 2) 
 
-ggsave(heritability_eQTL, filename = "~/Desktop/F2_paper/submission/Li-eQTL-2018/output/heritability_eQTL.png", width = 6, height = 9) 
+heritability_eQTL
+# ggsave(heritability_eQTL, filename = "~/Desktop/F2_paper/submission/Li-eQTL-2018/output/heritability_eQTL.png", width = 6, height = 9) 
 ```
 
 

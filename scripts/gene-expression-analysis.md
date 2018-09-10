@@ -6,6 +6,217 @@ output:
   html_document: 
     keep_md: yes
 ---
+### load libs
+
+```r
+library(edgeR)
+```
+
+```
+## Loading required package: limma
+```
+
+```r
+library(ggplot2)
+```
+
+```
+## Warning: package 'ggplot2' was built under R version 3.2.5
+```
+
+```r
+library("DESeq2") 
+```
+
+```
+## Loading required package: S4Vectors
+```
+
+```
+## Loading required package: stats4
+```
+
+```
+## Loading required package: BiocGenerics
+```
+
+```
+## Loading required package: parallel
+```
+
+```
+## 
+## Attaching package: 'BiocGenerics'
+```
+
+```
+## The following objects are masked from 'package:parallel':
+## 
+##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+##     clusterExport, clusterMap, parApply, parCapply, parLapply,
+##     parLapplyLB, parRapply, parSapply, parSapplyLB
+```
+
+```
+## The following object is masked from 'package:limma':
+## 
+##     plotMA
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     IQR, mad, xtabs
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     anyDuplicated, append, as.data.frame, as.vector, cbind,
+##     colnames, do.call, duplicated, eval, evalq, Filter, Find, get,
+##     grep, grepl, intersect, is.unsorted, lapply, lengths, Map,
+##     mapply, match, mget, order, paste, pmax, pmax.int, pmin,
+##     pmin.int, Position, rank, rbind, Reduce, rownames, sapply,
+##     setdiff, sort, table, tapply, union, unique, unlist, unsplit
+```
+
+```
+## Loading required package: IRanges
+```
+
+```
+## Loading required package: GenomicRanges
+```
+
+```
+## Loading required package: GenomeInfoDb
+```
+
+```
+## Loading required package: SummarizedExperiment
+```
+
+```
+## Loading required package: Biobase
+```
+
+```
+## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with
+##     'browseVignettes()'. To cite Bioconductor, see
+##     'citation("Biobase")', and for packages 'citation("pkgname")'.
+```
+
+```
+## Loading required package: Rcpp
+```
+
+```
+## Loading required package: RcppArmadillo
+```
+
+```
+## Warning: package 'RcppArmadillo' was built under R version 3.2.5
+```
+
+```r
+library(lme4) 
+```
+
+```
+## Loading required package: Matrix
+```
+
+```
+## Warning: package 'Matrix' was built under R version 3.2.5
+```
+
+```
+## 
+## Attaching package: 'Matrix'
+```
+
+```
+## The following object is masked from 'package:IRanges':
+## 
+##     expand
+```
+
+```r
+library(lmerTest) 
+```
+
+```
+## Warning: package 'lmerTest' was built under R version 3.2.5
+```
+
+```
+## 
+## Attaching package: 'lmerTest'
+```
+
+```
+## The following object is masked from 'package:lme4':
+## 
+##     lmer
+```
+
+```
+## The following object is masked from 'package:stats':
+## 
+##     step
+```
+
+```r
+library(reshape2)
+```
+
+```
+## Warning: package 'reshape2' was built under R version 3.2.5
+```
+
+```r
+library(tidyverse)
+```
+
+```
+## ── Attaching packages ────────────────────────────────── tidyverse 1.2.1 ──
+```
+
+```
+## ✔ tibble  1.4.2     ✔ purrr   0.2.4
+## ✔ tidyr   0.8.0     ✔ dplyr   0.7.4
+## ✔ readr   1.1.1     ✔ stringr 1.3.0
+## ✔ tibble  1.4.2     ✔ forcats 0.3.0
+```
+
+```
+## Warning: package 'readr' was built under R version 3.2.5
+```
+
+```
+## Warning: package 'purrr' was built under R version 3.2.5
+```
+
+```
+## Warning: package 'dplyr' was built under R version 3.2.5
+```
+
+```
+## ── Conflicts ───────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::collapse()     masks IRanges::collapse()
+## ✖ dplyr::combine()      masks Biobase::combine(), BiocGenerics::combine()
+## ✖ dplyr::desc()         masks IRanges::desc()
+## ✖ tidyr::expand()       masks Matrix::expand(), IRanges::expand()
+## ✖ dplyr::filter()       masks stats::filter()
+## ✖ dplyr::lag()          masks stats::lag()
+## ✖ S4Vectors::Position() masks BiocGenerics::Position(), ggplot2::Position(), base::Position()
+## ✖ purrr::reduce()       masks GenomicRanges::reduce(), IRanges::reduce()
+## ✖ dplyr::rename()       masks S4Vectors::rename()
+## ✖ purrr::simplify()     masks IRanges::simplify()
+## ✖ dplyr::slice()        masks IRanges::slice()
+```
 
 ### read in data 
 
@@ -30,22 +241,6 @@ colnames(parent.read.count.one) <- new_sample_ID
 ### sample description & filtering 
 
 ```r
-library(edgeR)
-```
-
-```
-## Loading required package: limma
-```
-
-```r
-library(ggplot2)
-```
-
-```
-## Warning: package 'ggplot2' was built under R version 3.2.5
-```
-
-```r
 parent.read.count.one <- parent.read.count.one[,colSums(parent.read.count.one) > 1000000]  
 parent.read.count.one.sample<-data.frame(file=colnames(parent.read.count.one),
                              batch=factor(gsub("(Da-Ae|Da-Ol-1)(_)(Young|flowering|early-silique|late-silique|bolting)(_)(1|2|3)","\\5",colnames(parent.read.count.one))),  
@@ -58,6 +253,22 @@ parent.read.count.one.sample<-data.frame(file=colnames(parent.read.count.one),
 parent.read.count.one.small <- parent.read.count.one[rowSums(parent.read.count.one > 10) >= 3,]
 ```
 
+### vst transformation, used later for heritability calculation 
+
+```r
+dds.parent <- DESeqDataSetFromMatrix(countData = round(parent.read.count.one.small), colData = parent.read.count.one.sample, design = ~ batch + genotype*stage)
+```
+
+```
+## converting counts to integer mode
+```
+
+```r
+vsd.parent <- varianceStabilizingTransformation(dds.parent)
+vstMat.parent <- assay(vsd.parent)
+colnames(vstMat.parent) <- colnames(parent.read.count.one) 
+```
+
 ### normalize & clustering  
 
 ```r
@@ -66,7 +277,7 @@ dge.new <- calcNormFactors(dge.new, method = "TMM")
 mds <- plotMDS(dge.new, method = "bcv",labels = dge.new$samples$group)
 ```
 
-![](gene-expression-analysis_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ```r
 x <- as.data.frame(mds$x)
@@ -86,7 +297,7 @@ p.mds <- ggplot(data = distance_matrix) + theme_gray(base_size = 20) +
 p.mds
 ```
 
-![](gene-expression-analysis_files/figure-html/unnamed-chunk-3-2.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
 
 ### design matrix and expression analysis 
 
@@ -139,50 +350,6 @@ source("helper.R")
 ```
 
 ```
-## Loading required package: BiocGenerics
-```
-
-```
-## Loading required package: parallel
-```
-
-```
-## 
-## Attaching package: 'BiocGenerics'
-```
-
-```
-## The following objects are masked from 'package:parallel':
-## 
-##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
-##     clusterExport, clusterMap, parApply, parCapply, parLapply,
-##     parLapplyLB, parRapply, parSapply, parSapplyLB
-```
-
-```
-## The following object is masked from 'package:limma':
-## 
-##     plotMA
-```
-
-```
-## The following objects are masked from 'package:stats':
-## 
-##     IQR, mad, xtabs
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     anyDuplicated, append, as.data.frame, as.vector, cbind,
-##     colnames, do.call, duplicated, eval, evalq, Filter, Find, get,
-##     grep, grepl, intersect, is.unsorted, lapply, lengths, Map,
-##     mapply, match, mget, order, paste, pmax, pmax.int, pmin,
-##     pmin.int, Position, rank, rbind, Reduce, rownames, sapply,
-##     setdiff, sort, table, tapply, union, unique, unlist, unsplit
-```
-
-```
 ## Loading required package: BiocParallel
 ```
 
@@ -191,19 +358,18 @@ source("helper.R")
 ```
 
 ```
-## Loading required package: S4Vectors
-```
-
-```
-## Loading required package: stats4
-```
-
-```
-## Loading required package: IRanges
-```
-
-```
 ## Loading required package: XVector
+```
+
+```
+## 
+## Attaching package: 'XVector'
+```
+
+```
+## The following object is masked from 'package:purrr':
+## 
+##     compact
 ```
 
 ```
@@ -211,31 +377,35 @@ source("helper.R")
 ```
 
 ```
-## Loading required package: GenomeInfoDb
-```
-
-```
-## Loading required package: GenomicRanges
-```
-
-```
 ## Loading required package: GenomicAlignments
 ```
 
 ```
-## Loading required package: SummarizedExperiment
-```
-
-```
-## Loading required package: Biobase
-```
-
-```
-## Welcome to Bioconductor
 ## 
-##     Vignettes contain introductory material; view with
-##     'browseVignettes()'. To cite Bioconductor, see
-##     'citation("Biobase")', and for packages 'citation("pkgname")'.
+## Attaching package: 'GenomicAlignments'
+```
+
+```
+## The following objects are masked from 'package:dplyr':
+## 
+##     first, last
+```
+
+```
+## 
+## Attaching package: 'ShortRead'
+```
+
+```
+## The following object is masked from 'package:dplyr':
+## 
+##     id
+```
+
+```
+## The following object is masked from 'package:purrr':
+## 
+##     compose
 ```
 
 ```
@@ -252,6 +422,17 @@ source("helper.R")
 
 ```
 ## Loading required package: AnnotationDbi
+```
+
+```
+## 
+## Attaching package: 'AnnotationDbi'
+```
+
+```
+## The following object is masked from 'package:dplyr':
+## 
+##     select
 ```
 
 ```
@@ -329,15 +510,42 @@ source("helper.R")
 ```
 
 ```
-## Warning: package 'reshape2' was built under R version 3.2.5
-```
-
-```
 ## Warning: package 'scales' was built under R version 3.2.5
 ```
 
 ```
+## 
+## Attaching package: 'scales'
+```
+
+```
+## The following object is masked from 'package:purrr':
+## 
+##     discard
+```
+
+```
+## The following object is masked from 'package:readr':
+## 
+##     col_factor
+```
+
+```
 ## Warning: package 'plyr' was built under R version 3.2.5
+```
+
+```
+## -------------------------------------------------------------------------
+```
+
+```
+## You have loaded plyr after dplyr - this is likely to cause problems.
+## If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
+## library(plyr); library(dplyr)
+```
+
+```
+## -------------------------------------------------------------------------
 ```
 
 ```
@@ -353,6 +561,19 @@ source("helper.R")
 
 ```
 ## The following object is masked from 'package:XVector':
+## 
+##     compact
+```
+
+```
+## The following objects are masked from 'package:dplyr':
+## 
+##     arrange, count, desc, failwith, id, mutate, rename, summarise,
+##     summarize
+```
+
+```
+## The following object is masked from 'package:purrr':
 ## 
 ##     compact
 ```
@@ -390,7 +611,7 @@ DEgene.GO.ORA.gt <- GOseq.Bn.ORA(rownames(DEgene.new.gt))
 ## 'select()' returned 1:1 mapping between keys and columns
 ```
 
-![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 ```
 ## [1] "enriched.GO is"
@@ -460,7 +681,7 @@ DEgene.GO.ORA.interaction <- GOseq.Bn.ORA(rownames(DEgene.new.interaction))
 ## 'select()' returned 1:1 mapping between keys and columns
 ```
 
-![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
 
 ```
 ## [1] "enriched.GO is"
@@ -532,5 +753,238 @@ pl.heatmap1 <- ggplot(data = gt_gt.tissue.melt) +
 pl.heatmap1    
 ```
 
-![](gene-expression-analysis_files/figure-html/unnamed-chunk-5-3.png)<!-- -->
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-7-3.png)<!-- -->
+
+### overlaps between genes with eQTL and genes differentially expressed between Da-Ae and Da-Ol-1 
+
+```r
+load("../output/cis_trans_result_new_flipped_C05C08.Rdata") 
+eQTL_gene <- c(cis_eQTL$gene_ID, trans_eQTL$gene_ID) %>% unique() 
+intersect(eQTL_gene, rownames(DEgene.new.gt)) %>% length() # 9436 
+```
+
+```
+## [1] 9436
+```
+
+```r
+nrow(DEgene.new.gt) # 15098 
+```
+
+```
+## [1] 15098
+```
+
+```r
+length(eQTL_gene) # 22693 
+```
+
+```
+## [1] 22693
+```
+
+```r
+data <- matrix(c(9436, 5662, 13230, 42952), nrow = 2, ncol = 2)
+colnames(data) <- c("DE", "no_DE")
+rownames(data) <- c("eQTL", "no_eQTL")
+data
+```
+
+```
+##           DE no_DE
+## eQTL    9436 13230
+## no_eQTL 5662 42952
+```
+
+```r
+fisher.test(data)  
+```
+
+```
+## 
+## 	Fisher's Exact Test for Count Data
+## 
+## data:  data
+## p-value < 2.2e-16
+## alternative hypothesis: true odds ratio is not equal to 1
+## 95 percent confidence interval:
+##  5.206536 5.623691
+## sample estimates:
+## odds ratio 
+##   5.410401
+```
+
+```r
+# late silique only 
+load("~/Desktop/Brassica_project/KIAT_RNA_seq/output/parent/DEgene.pairwise.gt.Rdata")
+nrow(DEgene.late.silique) # 7413 
+```
+
+```
+## [1] 7413
+```
+
+```r
+intersect(eQTL_gene, rownames(DEgene.late.silique)) %>% length() # 5650 
+```
+
+```
+## [1] 5650
+```
+
+```r
+unique(c(eQTL_gene, rownames(DEgene.late.silique))) %>% length() 
+```
+
+```
+## [1] 24456
+```
+
+```r
+# genes with detectable expression in F2: 56180  
+56180-  24456
+```
+
+```
+## [1] 31724
+```
+
+```r
+data2 <- matrix(c(5650, 1763, 17043, 31724), nrow = 2, ncol = 2)
+colnames(data2) <- c("DE", "no_DE")
+rownames(data2) <- c("eQTL", "no_eQTL")
+data2 
+```
+
+```
+##           DE no_DE
+## eQTL    5650 17043
+## no_eQTL 1763 31724
+```
+
+```r
+fisher.test(data2)  
+```
+
+```
+## 
+## 	Fisher's Exact Test for Count Data
+## 
+## data:  data2
+## p-value < 2.2e-16
+## alternative hypothesis: true odds ratio is not equal to 1
+## 95 percent confidence interval:
+##  5.635289 6.315485
+## sample estimates:
+## odds ratio 
+##   5.964901
+```
+
+### heritability calculation for all genes 
+
+the reviwer challenged our experiment design, since our population is F2 population, which is impossible to have replicates, so the gene expression quantification could be inaccurate (envrionmental variation was not taken into consideration). To check for this problem, we decided to calculate the heritability of genes. The approach I will be using is very similar to what I have done for the phenotypic traits, but this will be done for all the genes. 
+
+
+```r
+# 1) get late silique gene quantification files for parents, vst transform the data, and calculate VE 
+vstMat.parent %>% dim() # 60975    27 
+
+# 2) F2 vst transformed data 
+vstMat.f2.batch.corrected <- read.csv("../output/vstMat.f2.batch.corrected_revised.csv")
+dim(vstMat.f2.batch.corrected) # 56180   167 
+
+# 3) calculate VE using biological replicates of parent data  
+vstMat.parent.late.silique <- 
+vstMat.parent[rownames(vstMat.parent) %in% vstMat.f2.batch.corrected$id,] %>% 
+  as.data.frame() %>% 
+  dplyr::select(contains("late")) 
+
+vstMat.parent.late.silique$PHENOTYPE <- rownames(vstMat.parent.late.silique) 
+
+vstMat.parent.late.silique <- 
+vstMat.parent.late.silique %>%
+  gather(contains("Da"), key = "variable", value = "contains\\(\"Da\"\\)") %>% 
+  mutate(genotype = gsub("(Da-Ol-1|Da-Ae)(_)(late-silique)(_)(1|2|3)", "\\1", variable), 
+         rep_ID = gsub("(Da-Ol-1|Da-Ae)(_)(late-silique)(_)(1|2|3)", "\\5", variable))  
+
+colnames(vstMat.parent.late.silique)[3] <- "value"
+
+final_parent <- 
+vstMat.parent.late.silique %>% 
+  dplyr::select(genotype, rep_ID, PHENOTYPE, value) 
+
+VarE <- 
+sapply(unique(final_parent$PHENOTYPE), function(i) {
+  print(final_parent[final_parent$PHENOTYPE == i,] %>% rownames() %>% tail(1))
+  
+  test <- final_parent %>% 
+  filter(PHENOTYPE == i) 
+  
+  lme <- lmer(as.numeric(value) ~ (1|genotype),data=test)
+  var <- as.data.frame(VarCorr(lme)) 
+  var$vcov[2]
+})
+
+VarE <- data.frame(row.names = unique(final_parent$PHENOTYPE),
+                   VarE = VarE) 
+dim(VarE) # 51697     1 
+
+geneID <- vstMat.f2.batch.corrected[vstMat.f2.batch.corrected$id %in% rownames(vstMat.parent),]$id
+
+phefile.all <- 
+vstMat.f2.batch.corrected[vstMat.f2.batch.corrected$id %in% rownames(vstMat.parent),] %>% 
+  dplyr::select(-id) %>% 
+  t() %>% 
+  as.data.frame() 
+
+colnames(phefile.all) <- geneID
+phefile.all[1:10, 1:10] 
+
+VarP <- 
+sapply(colnames(phefile.all), function(i) var(phefile.all[[i]], na.rm = T)) %>% 
+  as.data.frame()
+
+colnames(VarP) <- "VarP" 
+dim(VarP) # 51697     1
+
+heritability <- 
+merge(VarE, VarP, by = 0) %>% 
+  mutate(heritability = (VarP - VarE)/VarP) %>% 
+  arrange(desc(heritability)) 
+
+heritability$heritability <- round(heritability$heritability, digits = 2)
+# save(heritability, file = "../output/heritability.Rdata")
+heritability$heritability <- ifelse(heritability$heritability < 0, 0, heritability$heritability) # heritability < 0 should be == 0 
+```
+
+
+```r
+load("../output/heritability.Rdata")
+
+# look for heritability for genes with eQTL and w/o eQTL  
+eQTL_gene %>% length() # 22693 
+```
+
+```
+## [1] 22693
+```
+
+```r
+heritability$eQTL <- ifelse(heritability$Row.names %in% eQTL_gene, "eQTL", "no_eQTL")
+
+heritability_eQTL <- 
+heritability %>% 
+  ggplot() + 
+  geom_histogram(aes(x = heritability), binwidth = 0.05) + 
+  facet_wrap(~eQTL, nrow = 2) 
+
+heritability_eQTL
+```
+
+![](gene-expression-analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+```r
+# ggsave(heritability_eQTL, filename = "~/Desktop/F2_paper/submission/Li-eQTL-2018/output/heritability_eQTL.png", width = 6, height = 9) 
+```
+
 

@@ -57,6 +57,7 @@ dds.parent <- DESeqDataSetFromMatrix(countData = round(parent.read.count.one.sma
 vsd.parent <- varianceStabilizingTransformation(dds.parent)
 vstMat.parent <- assay(vsd.parent)
 colnames(vstMat.parent) <- colnames(parent.read.count.one) 
+save(vstMat.parent, file = "~/Desktop/F2_paper/submission/Li-eQTL-2018/output/vstMat.parent.Rdata") 
 ```
 
 ### normalize & clustering  

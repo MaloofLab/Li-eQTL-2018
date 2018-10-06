@@ -1,0 +1,84 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Calculate coefficient of variation on gene expression and corresponding confidence intervals.
+
+```{r}
+library(tidyverse)
+library(boot)
+library(snowfall)
+```
+
+```{r}
+F2exp <- read_csv("../output/vstMat.f2.batch.corrected_revised.csv")
+load("../output/vstMat.parent.Rdata")
+load("../output/cis_trans_result_new_flipped_C05C08.Rdata")
+```
+
+```{r}
+head(vstMat.parent)
+
+parent <- vstMat.parent %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var="geneID") %>%
+  as_tibble() %>%
+  select(geneID, contains("late-silique")) %>%
+  gather(key="sample",value="expression",-geneID) %>%
+  separate(sample,sep="_",into=c("gt","tissue","rep")) %>%
+  arrange(geneID,gt,rep)
+
+parent
+```
+
+```{r}
+CV <- function(x,i=NA) { #i = indices of which samples to keep for bootstrapping
+  if (!is.na(i[1]))
+    x <- x[i,]
+  cv <- x %>% group_by(gt) %>% #separate CV calc for Da-Ae and Da-Ol
+    summarize(cv=sd(expression) / mean(expression)) %>%
+    pull(cv) %>% mean()
+  return(cv)
+}
+```
+
+```{r}
+boot.result <- boot(
+  data=parent[1:6,],
+  statistic = CV,
+  R=1000)
+
+boot.ci(boot.result,type = "norm")$normal
+```
+
+```{r}
+get.boot.conf <- function(x) {
+  boot.out <- boot(x,statistic=CV,R=1000)
+  boot.ci.result <- boot.ci(boot.out,type="norm")
+  tibble(CV=boot.ci.result$t0,CV.min=boot.ci.result$normal[2],CV.max=boot.ci.result$normal[3])
+  }
+```
+
+```{r}
+sfInit(parallel=TRUE,cpus=12)
+sfLibrary(boot)
+sfLibrary(tidyverse)
+sfExport("CV","get.boot.conf")
+
+system.time({
+boot.results <- parent[1:48,] %>% group_by(geneID) %>%
+  nest() %>%
+  mutate(boot=sfLapply(data,get.boot.conf))
+})
+  
+boot.results <- boot.results %>% unnest(boot)
+
+save(boot.results,file="boot.Rdata")
+
+boot.results
+
+sfStop()
+```
+
+
